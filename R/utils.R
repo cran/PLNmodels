@@ -200,6 +200,7 @@ PLNnetwork_param <- function(control, n, p, d, weighted = FALSE) {
     "ftol_out"  = 1e-5,
     "maxit_out" = 50,
     "penalize_diagonal" = TRUE,
+    "penalty_weights"   = matrix(1, p, p),
     "warm"        = FALSE,
     "algorithm"   = "CCSAQ",
     "ftol_rel"    = 1e-8    ,
@@ -215,6 +216,7 @@ PLNnetwork_param <- function(control, n, p, d, weighted = FALSE) {
   )
   ctrl[names(control)] <- control
   stopifnot(ctrl$algorithm %in% available_algorithms)
+  stopifnot(isSymmetric(ctrl$penalty_weights), all(ctrl$penalty_weights > 0))
   ctrl
 }
 
