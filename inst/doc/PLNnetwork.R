@@ -1,63 +1,63 @@
-## ----setup, include=FALSE------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(
   echo = TRUE,
   rows.print = 5,
   message = FALSE, 
   warning = FALSE)
 
-## ----requirement---------------------------------------------------------
+## ----requirement--------------------------------------------------------------
 library(PLNmodels)
 library(ggplot2)
 
-## ----data_load-----------------------------------------------------------
+## ----data_load----------------------------------------------------------------
 data(trichoptera)
 trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 
-## ----simple PLNnetwork---------------------------------------------------
+## ----simple PLNnetwork--------------------------------------------------------
 network_models <- PLNnetwork(Abundance ~ 1 + offset(log(Offset)), data = trichoptera)
 
-## ----show----------------------------------------------------------------
+## ----show---------------------------------------------------------------------
 network_models
 
-## ----collection criteria-------------------------------------------------
+## ----collection criteria------------------------------------------------------
 network_models$criteria %>% head() %>% knitr::kable()
 
-## ----convergence criteria------------------------------------------------
+## ----convergence criteria-----------------------------------------------------
 network_models$convergence %>% head() %>% knitr::kable()
 
-## ----diagnostic, fig.width=7, fig.height=5-------------------------------
+## ----diagnostic, fig.width=7, fig.height=5------------------------------------
 plot(network_models, "diagnostic")
 
-## ----plot, fig.width=7, fig.height=5-------------------------------------
+## ----plot, fig.width=7, fig.height=5------------------------------------------
 plot(network_models)
 
-## ----path_coeff, fig.width=7, fig.height=7-------------------------------
+## ----path_coeff, fig.width=7, fig.height=7------------------------------------
 coefficient_path(network_models, corr = TRUE) %>% 
   ggplot(aes(x = Penalty, y = Coeff, group = Edge, colour = Edge)) + 
     geom_line(show.legend = FALSE) +  coord_trans(x="log10") + theme_bw()
 
-## ----extract models------------------------------------------------------
+## ----extract models-----------------------------------------------------------
 model_pen <- getModel(network_models, network_models$penalties[20]) # give some sparsity
 model_BIC <- getBestModel(network_models, "BIC")   # if no criteria is specified, the best BIC is used
 
-## ----extract models stars------------------------------------------------
+## ----extract models stars-----------------------------------------------------
 model_StARS <- getBestModel(network_models, "StARS") # if StARS is requested, stabiltiy selection is performed if needed 
 
-## ----plot stability, fig.width=7, fig.height=5---------------------------
+## ----plot stability, fig.width=7, fig.height=5--------------------------------
 plot(network_models, "stability")
 
-## ----show/print----------------------------------------------------------
+## ----show/print---------------------------------------------------------------
 model_StARS
 
-## ----extract-------------------------------------------------------------
+## ----extract------------------------------------------------------------------
 my_graph <- plot(model_StARS, plot = FALSE)
 my_graph
 
-## ----stars_network, fig.width=7, fig.height=7----------------------------
+## ----stars_network, fig.width=7, fig.height=7---------------------------------
 plot(model_StARS)
 plot(model_StARS, type = "support", output = "corrplot")
 
-## ----fitted, fig.cap = "fitted value vs. observation", fig.dim=c(7,5)----
+## ----fitted, fig.cap = "fitted value vs. observation", fig.dim=c(7,5)---------
 data.frame(
   fitted   = as.vector(fitted(model_StARS)),
   observed = as.vector(trichoptera$Abundance)

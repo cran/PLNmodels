@@ -1,26 +1,26 @@
-## ----setup, include=FALSE------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(
   echo = TRUE,
   rows.print = 5,
   message = FALSE,
   warning = FALSE)
 
-## ----packages------------------------------------------------------------
+## ----packages-----------------------------------------------------------------
 library(PLNmodels)
 
 ## ----trichoptera, echo = FALSE, fig.align='center', fig.cap = "Macronema Zebratum captured by Y. Dubuc at Donacona (Québec), 06-20-2001."----
 knitr::include_graphics("figures/macronema_zebratum.jpg")
 
-## ----data_load-----------------------------------------------------------
+## ----data_load----------------------------------------------------------------
 data(trichoptera)
 
-## ----prepare_data--------------------------------------------------------
+## ----prepare_data-------------------------------------------------------------
 trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 
-## ----data_str------------------------------------------------------------
+## ----data_str-----------------------------------------------------------------
 str(trichoptera)
 
-## ----responses_trichoptera-----------------------------------------------
+## ----responses_trichoptera----------------------------------------------------
 trichoptera$Abundance %>% head() %>% knitr::kable()
 
 ## ----count diplay, fig.width = 7, fig.cap = "log-counts in the trichoptera data set"----
@@ -30,9 +30,9 @@ corrplot::corrplot(
   addgrid.col = NA
 )
 
-## ----covariates_trichoptera----------------------------------------------
+## ----covariates_trichoptera---------------------------------------------------
 dplyr::select(trichoptera, -Offset, -Abundance) %>% head() %>% knitr::kable()
 
-## ----offset_trichopera---------------------------------------------------
+## ----offset_trichopera--------------------------------------------------------
 trichoptera$Offset
 

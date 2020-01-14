@@ -1,16 +1,16 @@
-## ----setup, include=FALSE------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(
   echo = TRUE,
   rows.print = 5,
   message = FALSE, 
   warning = FALSE)
 
-## ----requirement---------------------------------------------------------
+## ----requirement--------------------------------------------------------------
 library(PLNmodels)
 library(ggplot2)
 library(corrplot)
 
-## ----data_load-----------------------------------------------------------
+## ----data_load----------------------------------------------------------------
 data(trichoptera)
 trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 
@@ -58,17 +58,17 @@ grid.arrange(p.latent + labs(x = "species 1", y = "species 2"),
              p.observation.only + labs(x = "species 1", y = "species 2"),
              ncol = 2)
 
-## ----simple PLN----------------------------------------------------------
+## ----simple PLN---------------------------------------------------------------
 myPLN <- PLN(Abundance ~ 1, trichoptera)
 
-## ----show-method---------------------------------------------------------
+## ----show-method--------------------------------------------------------------
 myPLN
 
-## ----fields-access-------------------------------------------------------
+## ----fields-access------------------------------------------------------------
 c(myPLN$loglik, myPLN$BIC, myPLN$ICL, myPLN$R_squared)
 myPLN$criteria
 
-## ----fitted, fig.cap = "fitted value vs. observation", fig.dim=c(7,5)----
+## ----fitted, fig.cap = "fitted value vs. observation", fig.dim=c(7,5)---------
 data.frame(
   fitted   = as.vector(fitted(myPLN)),
   observed = as.vector(trichoptera$Abundance)
@@ -79,16 +79,16 @@ data.frame(
     scale_y_log10() + 
     theme_bw() + annotation_logticks()
 
-## ----coef----------------------------------------------------------------
+## ----coef---------------------------------------------------------------------
 data.frame(
   rbind(t(coef(myPLN)), t(standard_error(myPLN))), 
   row.names = c("effect", "stderr")
  ) %>% rmarkdown::paged_table()
 
-## ----plot covariance, fig.width=7, fig.height=5--------------------------
+## ----plot covariance, fig.width=7, fig.height=5-------------------------------
 corrplot(sigma(myPLN), is.corr = FALSE)
 
-## ----weighted, fig.width=7, fig.height=5---------------------------------
+## ----weighted, fig.width=7, fig.height=5--------------------------------------
 myPLN_weighted <- 
   PLN(
     Abundance ~ 1, 
@@ -106,27 +106,27 @@ data.frame(
     scale_y_log10() + 
     theme_bw() + annotation_logticks()
 
-## ----PLN offset----------------------------------------------------------
+## ----PLN offset---------------------------------------------------------------
 myPLN_offsets <- 
   PLN(Abundance ~ 1 + offset(log(Offset)), 
       data = trichoptera, control = list(trace = 0))
 
-## ----compare w/wo offset-------------------------------------------------
+## ----compare w/wo offset------------------------------------------------------
 rbind(
   myPLN$criteria,
   myPLN_offsets$criteria
 ) %>% knitr::kable()
 
-## ----PLN wind------------------------------------------------------------
+## ----PLN wind-----------------------------------------------------------------
 myPLN_wind <- PLN(Abundance ~ 1 + Wind + offset(log(Offset)), data = trichoptera)
 
-## ----compare models------------------------------------------------------
+## ----compare models-----------------------------------------------------------
 rbind(
   myPLN_offsets$criteria,
   myPLN_wind$criteria
 ) %>% knitr::kable()
 
-## ----covariances models--------------------------------------------------
+## ----covariances models-------------------------------------------------------
 myPLN_diagonal <- 
   PLN(
     Abundance ~ 1 + offset(log(Offset)),
@@ -138,13 +138,13 @@ myPLN_spherical <-
     data = trichoptera, control = list(covariance = "spherical", trace = 0)
   )
 
-## ----PLN covariance full, evaluate = FALSE-------------------------------
+## ----PLN covariance full, evaluate = FALSE------------------------------------
 myPLN_default <- 
   PLN(Abundance ~ 1, data = trichoptera, )
 myPLN_full <- 
   PLN(Abundance ~ 1, data = trichoptera, control = list(covariance = "full"))
 
-## ----compare covariances-------------------------------------------------
+## ----compare covariances------------------------------------------------------
 rbind(
   myPLN_offsets$criteria,
   myPLN_diagonal$criteria,
@@ -153,7 +153,7 @@ rbind(
   as.data.frame(row.names = c("full", "diagonal", "spherical")) %>%
   knitr::kable()
 
-## ----final---------------------------------------------------------------
+## ----final--------------------------------------------------------------------
 myPLN_final <- 
   PLN(
     Abundance ~ 1 + Wind + offset(log(Offset)),

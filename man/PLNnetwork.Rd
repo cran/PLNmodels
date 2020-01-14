@@ -4,8 +4,15 @@
 \alias{PLNnetwork}
 \title{Poisson lognormal model towards sparse network inference}
 \usage{
-PLNnetwork(formula, data, subset, weights, penalties = NULL,
-  control_init = list(), control_main = list())
+PLNnetwork(
+  formula,
+  data,
+  subset,
+  weights,
+  penalties = NULL,
+  control_init = list(),
+  control_main = list()
+)
 }
 \arguments{
 \item{formula}{an object of class "formula": a symbolic description of the model to be fitted.}

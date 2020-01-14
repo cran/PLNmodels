@@ -1,61 +1,61 @@
-## ----setup, include=FALSE------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(
   echo = TRUE,
   rows.print = 5,
   message = FALSE, 
   warning = FALSE)
 
-## ----requirement---------------------------------------------------------
+## ----requirement--------------------------------------------------------------
 library(PLNmodels)
 library(ggplot2)
 library(corrplot)
 
-## ----data_load-----------------------------------------------------------
+## ----data_load----------------------------------------------------------------
 data(trichoptera)
 trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 
-## ----simple PLNPCA-------------------------------------------------------
+## ----simple PLNPCA------------------------------------------------------------
 PCA_models <- PLNPCA(
   Abundance ~ 1 + offset(log(Offset)),
   data  = trichoptera, 
   ranks = 1:5
 )
 
-## ----show nocov----------------------------------------------------------
+## ----show nocov---------------------------------------------------------------
 PCA_models
 
-## ----collection criteria-------------------------------------------------
+## ----collection criteria------------------------------------------------------
 PCA_models$criteria %>% knitr::kable()
 
-## ----convergence criteria------------------------------------------------
+## ----convergence criteria-----------------------------------------------------
 PCA_models$convergence  %>% knitr::kable()
 
-## ----plot nocov, fig.width=7, fig.height=5-------------------------------
+## ----plot nocov, fig.width=7, fig.height=5------------------------------------
 plot(PCA_models)
 
-## ----model extraction----------------------------------------------------
+## ----model extraction---------------------------------------------------------
 myPCA_ICL <- getBestModel(PCA_models, "ICL") 
 myPCA_BIC <- getModel(PCA_models, 3) # getBestModel(PCA_models, "BIC")  is equivalent here 
 
-## ----map, fig.width=8, fig.height=8--------------------------------------
+## ----map, fig.width=8, fig.height=8-------------------------------------------
 plot(myPCA_ICL, ind_cols = trichoptera$Group)
 
-## ----regression----------------------------------------------------------
+## ----regression---------------------------------------------------------------
 coef(myPCA_ICL) %>% head() %>% knitr::kable()
 
-## ----sigma, fig.width=7--------------------------------------------------
+## ----sigma, fig.width=7-------------------------------------------------------
 sigma(myPCA_ICL) %>% corrplot(is.corr = FALSE)
 
-## ----rotation------------------------------------------------------------
+## ----rotation-----------------------------------------------------------------
 myPCA_ICL$rotation %>% head() %>% knitr::kable()
 
-## ----scores--------------------------------------------------------------
+## ----scores-------------------------------------------------------------------
 myPCA_ICL$scores %>% head() %>% knitr::kable()
 
-## ----show PLNPCAfit------------------------------------------------------
+## ----show PLNPCAfit-----------------------------------------------------------
 myPCA_ICL
 
-## ----cov-----------------------------------------------------------------
+## ----cov----------------------------------------------------------------------
 PCA_models_cov <- 
   PLNPCA(
     Abundance ~ 1 + offset(log(Offset)) + Temperature + Wind + Cloudiness,
@@ -63,18 +63,18 @@ PCA_models_cov <-
     ranks = 1:4
   )
 
-## ----extraction cov, fig.width=7, fig.height=7---------------------------
+## ----extraction cov, fig.width=7, fig.height=7--------------------------------
 plot(PCA_models_cov)
 myPCA_cov <- getBestModel(PCA_models_cov, "ICL")
 
-## ----maps, fig.height=4, fig.width=7-------------------------------------
+## ----maps, fig.height=4, fig.width=7------------------------------------------
 gridExtra::grid.arrange(
   plot(myPCA_cov, map = "individual", ind_cols = trichoptera$Group, plot = FALSE),
   plot(myPCA_cov, map = "variable", plot = FALSE),
   ncol = 2
 )
 
-## ----fitted, fig.cap = "fitted value vs. observation", fig.dim=c(7,5)----
+## ----fitted, fig.cap = "fitted value vs. observation", fig.dim=c(7,5)---------
 data.frame(
   fitted   = as.vector(fitted(myPCA_cov)),
   observed = as.vector(trichoptera$Abundance)
