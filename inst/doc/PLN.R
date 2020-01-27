@@ -1,5 +1,6 @@
 ## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(
+  screenshot.force = FALSE, 
   echo = TRUE,
   rows.print = 5,
   message = FALSE, 
@@ -15,6 +16,7 @@ data(trichoptera)
 trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 
 ## ----geometricalInsight, echo = FALSE, message = FALSE, warning = FALSE, fig.cap = "PLN: geometrical view", fig.width=7, fig.height=7, fig.align='center'----
+
 library(grid)
 library(gridExtra)
 library(dplyr)
@@ -83,7 +85,7 @@ data.frame(
 data.frame(
   rbind(t(coef(myPLN)), t(standard_error(myPLN))), 
   row.names = c("effect", "stderr")
- ) %>% rmarkdown::paged_table()
+ ) %>% select(1:5) %>% knitr::kable()
 
 ## ----plot covariance, fig.width=7, fig.height=5-------------------------------
 corrplot(sigma(myPLN), is.corr = FALSE)

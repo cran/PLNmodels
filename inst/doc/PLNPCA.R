@@ -1,5 +1,6 @@
 ## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(
+  screenshot.force = FALSE, 
   echo = TRUE,
   rows.print = 5,
   message = FALSE, 

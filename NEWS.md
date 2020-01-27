@@ -1,3 +1,8 @@
+# PLNmodels 0.9.5 - minor release
+
+* removed any use of rmarkdown::paged_table() in the vignettes
+* added screenshot.force = FALSE, in knitr options in the vignettes
+
 # PLNmodels 0.9.4 - minor release
 
 * removing dependencies to bioconductor packages, too cumbersome to maintain on CRAN
