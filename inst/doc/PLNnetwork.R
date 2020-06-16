@@ -42,7 +42,7 @@ model_pen <- getModel(network_models, network_models$penalties[20]) # give some 
 model_BIC <- getBestModel(network_models, "BIC")   # if no criteria is specified, the best BIC is used
 
 ## ----extract models stars-----------------------------------------------------
-model_StARS <- getBestModel(network_models, "StARS") # if StARS is requested, stabiltiy selection is performed if needed 
+model_StARS <- getBestModel(network_models, "StARS") # if StARS is requested, stability selection is performed if needed 
 
 ## ----plot stability, fig.width=7, fig.height=5--------------------------------
 plot(network_models, "stability")

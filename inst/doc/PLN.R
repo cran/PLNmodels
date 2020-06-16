@@ -91,21 +91,21 @@ data.frame(
 corrplot(sigma(myPLN), is.corr = FALSE)
 
 ## ----weighted, fig.width=7, fig.height=5--------------------------------------
-myPLN_weighted <- 
+myPLN_weighted <-
   PLN(
-    Abundance ~ 1, 
-    data    = trichoptera, 
+    Abundance ~ 1,
+    data    = trichoptera,
     weights = runif(nrow(trichoptera)),
     control = list(trace = 0)
   )
 data.frame(
   unweighted = as.vector(fitted(myPLN)),
   weighted   = as.vector(fitted(myPLN_weighted))
-) %>% 
-  ggplot(aes(x = unweighted, y = weighted)) + 
-    geom_point(size = .5, alpha =.25 ) + 
-    scale_x_log10() + 
-    scale_y_log10() + 
+) %>%
+  ggplot(aes(x = unweighted, y = weighted)) +
+    geom_point(size = .5, alpha =.25 ) +
+    scale_x_log10() +
+    scale_y_log10() +
     theme_bw() + annotation_logticks()
 
 ## ----PLN offset---------------------------------------------------------------
@@ -128,22 +128,24 @@ rbind(
   myPLN_wind$criteria
 ) %>% knitr::kable()
 
-## ----covariances models-------------------------------------------------------
-myPLN_diagonal <- 
-  PLN(
-    Abundance ~ 1 + offset(log(Offset)),
-    data = trichoptera, control = list(covariance = "diagonal", trace = 0)
-  )
-myPLN_spherical <- 
+## ----covariances models spherical---------------------------------------------
+myPLN_spherical <-
   PLN(
     Abundance ~ 1 + offset(log(Offset)),
     data = trichoptera, control = list(covariance = "spherical", trace = 0)
   )
 
+## ----covariances model diagonal-----------------------------------------------
+myPLN_diagonal <-
+  PLN(
+    Abundance ~ 1 + offset(log(Offset)),
+    data = trichoptera, control = list(covariance = "diagonal", trace = 0)
+  )
+
 ## ----PLN covariance full, evaluate = FALSE------------------------------------
-myPLN_default <- 
+myPLN_default <-
   PLN(Abundance ~ 1, data = trichoptera, )
-myPLN_full <- 
+myPLN_full <-
   PLN(Abundance ~ 1, data = trichoptera, control = list(covariance = "full"))
 
 ## ----compare covariances------------------------------------------------------
@@ -151,12 +153,12 @@ rbind(
   myPLN_offsets$criteria,
   myPLN_diagonal$criteria,
   myPLN_spherical$criteria
-) %>% 
+) %>%
   as.data.frame(row.names = c("full", "diagonal", "spherical")) %>%
   knitr::kable()
 
 ## ----final--------------------------------------------------------------------
-myPLN_final <- 
+myPLN_final <-
   PLN(
     Abundance ~ 1 + Wind + offset(log(Offset)),
     data    = trichoptera, control = list(covariance = "diagonal", trace = 0)
