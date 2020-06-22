@@ -1,6 +1,6 @@
 Package: PLNmodels
 Title: Poisson Lognormal Models
-Version: 0.10.5
+Version: 0.10.6
 Authors@R: c(
   person("Julien", "Chiquet", role = c("aut", "cre"), email = "julien.chiquet@inrae.fr",
       comment = c(ORCID = "0000-0002-3629-3429")),
@@ -42,10 +42,10 @@ Collate: 'PLNfit-class.R' 'PLN.R' 'PLNLDA.R' 'PLNLDAfit-S3methods.R'
         'plot_utils.R' 'trichoptera.R' 'utils-pipe.R' 'utils.R'
 Language: en-US
 NeedsCompilation: yes
-Packaged: 2020-06-16 11:15:33 UTC; jchiquet
+Packaged: 2020-06-21 19:14:44 UTC; jchiquet
 Author: Julien Chiquet [aut, cre] (<https://orcid.org/0000-0002-3629-3429>),
   Mahendra Mariadassou [aut] (<https://orcid.org/0000-0003-2986-354X>),
   Stéphane Robin [ctb]
 Maintainer: Julien Chiquet <julien.chiquet@inrae.fr>
 Repository: CRAN
-Date/Publication: 2020-06-16 15:20:03 UTC
+Date/Publication: 2020-06-22 09:50:03 UTC
