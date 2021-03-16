@@ -17,6 +17,7 @@
 #' @rdname PLNfamily
 #' @include PLNfamily-class.R
 #' @importFrom R6 R6Class
+#' @importFrom purrr map reduce map_chr
 PLNfamily <-
   R6Class(
     classname = "PLNfamily",
@@ -33,7 +34,7 @@ PLNfamily <-
       #' @field offsets the matrix of offsets common to every models
       offsets    = NULL, # the O matrix
       #' @field weights the vector of observation weights
-      weights    = NULL, # the vector of obervation weights
+      weights    = NULL, # the vector of observation weights
       #' @field inception a [PLNfit] object, obtained when no sparsifying penalty is applied.
       inception  = NULL, # the basic model in the collection (no regularization, nor sparsity, nor rank)
       #' @field models a list of [PLNfit] object, one per penalty.
@@ -96,8 +97,9 @@ PLNfamily <-
         } else { ## No exact match
           id <- which.min(abs(var - private$params)) ## closest model (in terms of parameter value)
           warning(paste("No such a model in the collection. Acceptable parameter values can be found via",
-                        "$ranks() (for PCA)",
-                        "$penalties() (for network)",
+                        "$ranks (for PCA)",
+                        "$clusters (for mixture models)",
+                        "$penalties (for network)",
                         paste("Returning model with closest value. Requested:", var, ", returned:", private$params[id]),
                         sep = "\n"))
           return(self$models[[id]]$clone())
@@ -109,20 +111,27 @@ PLNfamily <-
       #' @description
       #' Lineplot of selected criteria for all models in the collection
       #' @param criteria A valid model selection criteria for the collection of models. Includes loglik, BIC (all), ICL (PLNPCA) and pen_loglik, EBIC (PLNnetwork)
-      #' @param annotate Logical. Should R2 be added to the plot (defaults to `TRUE`)
+      #' @param reverse A logical indicating whether to plot the value of the criteria in the "natural" direction
+      #' (loglik - penalty) or in the "reverse" direction (-2 loglik + penalty). Default to FALSE, i.e use the natural direction, on
+      #' the same scale as the log-likelihood.
       #' @return A [`ggplot2`] object
-      plot = function(criteria, annotate = TRUE) {
+      plot = function(criteria, reverse) {
         stopifnot(!anyNA(self$criteria[criteria]))
         dplot <- self$criteria %>%
           dplyr::select(c("param", criteria)) %>%
           tidyr::gather(key = "criterion", value = "value", -param) %>%
+          {if (reverse)
+            dplyr::mutate(
+              .data = .,
+              value = -2 * value,
+              criterion = dplyr::if_else(grepl('loglik', criterion), paste0("-2", criterion), criterion))
+            else . } %>%
           dplyr::group_by(criterion)
         p <- ggplot(dplot, aes(x = param, y = value, group = criterion, colour = criterion)) +
-          geom_line() + geom_point() + ggtitle("Model selection criteria") + theme_bw()
-
-        if (annotate)
-          p <- p + annotate("text", x = self$criteria$param, y = min(dplot$value), hjust=-.1, angle = 90,
-                            label = paste("R2 =", round(self$criteria$R_squared, 2)), size = 3, alpha = 0.7)
+          geom_line() + geom_point() +
+          ggtitle(label    = "Model selection criteria",
+                  subtitle = if (reverse) "Lower is better" else "Higher is better") +
+          theme_bw()
         p
       },
 
@@ -141,33 +150,34 @@ PLNfamily <-
       ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ## Other public members --------------
 
-
     ),
 
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## PRIVATE MEMBERS ----
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     private = list(
-      params     = NULL, # vector of parameters that indexes the models (either sparsity, rank, etc.)
-      n          = NULL, # number of samples
-      p          = NULL, # number of responses
-      d          = NULL  # number of covariates
+      params = NULL, # vector of parameters that indexes the models (either sparsity, rank, number of cluster, etc.)
+      n      = NULL, # number of samples
+      p      = NULL, # number of responses
+      d      = NULL  # number of covariates
     ),
 
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## ACTIVE BINDINGS ----
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     active = list(
-      #' @field criteria a data frame with the values of some criteria (variational lower bound J, BIC, ICL and R2) for the collection of models / fits
+      #' @field criteria a data frame with the values of some criteria (approximated log-likelihood, BIC, ICL, etc.) for the collection of models / fits
+      #' BIC and ICL are defined so that they are on the same scale as the model log-likelihood, i.e. with the form, loglik - 0.5 penalty
       criteria = function() {
-        res <- do.call(rbind, lapply(self$models, function(model) {model$criteria}))
+        res <- purrr::map(self$models, 'criteria') %>%
+          purrr::reduce(rbind)
         data.frame(param = private$params, res)
       },
       #' @field convergence sends back a data frame with some convergence diagnostics associated with the optimization process (method, optimal value, etc)
       convergence = function() {
-        res <- do.call(rbind, lapply(self$models, function(model) {
-          c(nb_param = model$nb_param, sapply(model$optim_par, function(x) x[length(x)]))
-        }))
+        res <- purrr::map(self$models, function(model) {
+          c(nb_param = model$nb_param, purrr::map_chr(model$optim_par, tail, 1))
+        }) %>% purrr::reduce(rbind)
         data.frame(param = private$params, res, stringsAsFactors = FALSE)
       }
     )
@@ -176,5 +186,4 @@ PLNfamily <-
     ##  END OF CLASS ----
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   )
-
 

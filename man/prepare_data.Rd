@@ -11,7 +11,7 @@ prepare_data(counts, covariates, offset = "TSS", ...)
 
 \item{covariates}{Required. A covariates data frame, preferably with row names.}
 
-\item{offset}{Optional. Normalization scheme used to compute scaling factors used as offset during PLN inference. Available schemes are "TSS" (Total Sum Scaling, default), "CSS" (Cumulative Sum Scaling, used in metagenomeSeq), "RLE" (Relative Log Expression, used in DESeq2), "GMPR" (Geometric Mean of Pairwise Ratio, introduced in Chen et al., 2018) or "none". Alternatively the user can supply its own vector or matrix of offsets (see note for specification of the user-supplied offsets).}
+\item{offset}{Optional. Normalization scheme used to compute scaling factors used as offset during PLN inference. Available schemes are "TSS" (Total Sum Scaling, default), "CSS" (Cumulative Sum Scaling, used in metagenomeSeq), "RLE" (Relative Log Expression, used in DESeq2), "GMPR" (Geometric Mean of Pairwise Ratio, introduced in Chen et al., 2018), Wrench (introduced in Kumar et al., 2018) or "none". Alternatively the user can supply its own vector or matrix of offsets (see note for specification of the user-supplied offsets).}
 
 \item{...}{Additional parameters passed on to \code{\link[=compute_offset]{compute_offset()}}}
 }
@@ -20,7 +20,7 @@ A data.frame suited for use in \code{\link[=PLN]{PLN()}} and its variants with t
 }
 \description{
 Prepare data in proper format for use in PLN model and its variants. The function (i) merges a count table and
-a covariate data frame in the most comprehensive way and (ii) computes offsets from the count table using one of several normalization schemes (TSS, CSS, RLE, GMPR, etc). The function fails with informative messages when the heuristics used for sample matching fail.
+a covariate data frame in the most comprehensive way and (ii) computes offsets from the count table using one of several normalization schemes (TSS, CSS, RLE, GMPR, Wrench, etc). The function fails with informative messages when the heuristics used for sample matching fail.
 }
 \note{
 User supplied offsets should be either vectors/column-matrices or have the same number of column as the original count matrix and either (i) dimension names or (ii) the same dimensions as the count matrix. Samples are trimmed in exactly the same way to remove empty samples.
@@ -36,11 +36,13 @@ proper_data$Abundance
 proper_data$Offset
 }
 \references{
-Chen, L., Reeve, J., Zhang, L., Huang, S., Wang, X. and Chen, J. (2018) GMPR: A robust normalization method for zero-inflated count data with application to microbiome sequencing data. PeerJ, 6, e4600 \url{https://doi.org/10.7717/peerj.4600}
+Chen, L., Reeve, J., Zhang, L., Huang, S., Wang, X. and Chen, J. (2018) GMPR: A robust normalization method for zero-inflated count data with application to microbiome sequencing data. PeerJ, 6, e4600 \doi{10.7717/peerj.4600}
 
-Paulson, J. N., Colin Stine, O., Bravo, H. C. and Pop, M. (2013) Differential abundance analysis for microbial marker-gene surveys. Nature Methods, 10, 1200-1202 \url{http://dx.doi.org/10.1038/nmeth.2658}
+Paulson, J. N., Colin Stine, O., Bravo, H. C. and Pop, M. (2013) Differential abundance analysis for microbial marker-gene surveys. Nature Methods, 10, 1200-1202 \doi{10.1038/nmeth.2658}
 
-Anders, S. and Huber, W. (2010) Differential expression analysis for sequence count data. Genome Biology, 11, R106 \url{https://doi.org/10.1186/gb-2010-11-10-r106}
+Anders, S. and Huber, W. (2010) Differential expression analysis for sequence count data. Genome Biology, 11, R106 \doi{10.1186/gb-2010-11-10-r106}
+
+Kumar, M., Slud, E., Okrah, K. et al. (2018) Analysis and correction of compositional bias in sparse sequencing count data. BMC Genomics 19, 799 \doi{10.1186/s12864-018-5160-5}
 }
 \seealso{
 \code{\link[=compute_offset]{compute_offset()}} for details on the different normalization schemes

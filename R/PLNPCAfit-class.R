@@ -9,7 +9,7 @@
 #' @param covariates design matrix (called X in the model). Will usually be extracted from the corresponding field in [`PLNfamily`]
 #' @param offsets offset matrix (called O in the model). Will usually be extracted from the corresponding field in [`PLNfamily`]
 #' @param weights an optional vector of observation weights to be used in the fitting process.
-#' @param model model used for fitting, extracted from the formula in the upper-level call
+#' @param formula model formula used for fitting, extracted from the formula in the upper-level call
 #' @param control a list for controlling the optimization. See details.
 #' @param rank rank of the PCA (or equivalently, dimension of the latent space)
 #' @param xlevels named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.
@@ -45,8 +45,8 @@ PLNPCAfit <- R6Class(
       ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ## Creation functions ----------------
       #' @description Initialize a [`PLNPCAfit`] object
-      initialize = function(rank, responses, covariates, offsets, weights, model, xlevels, control) {
-        super$initialize(responses, covariates, offsets, weights, model, xlevels, control)
+      initialize = function(rank, responses, covariates, offsets, weights, formula, xlevels, control) {
+        super$initialize(responses, covariates, offsets, weights, formula, xlevels, control)
         if (!is.null(control$svdM)) {
           svdM <- control$svdM
         } else {
@@ -80,12 +80,15 @@ PLNPCAfit <- R6Class(
       optimize = function(responses, covariates, offsets, weights, control) {
         ## CALL TO NLOPT OPTIMIZATION WITH BOX CONSTRAINT
         opts <- control
-        opts$xtol_abs <- c(rep(0, self$p*(self$d + self$q) + self$n * self$q),
-                           rep(control$xtol_abs, self$n*self$q))
-        opts$rank <- self$q
-        optim_out <- optim_rank(
-          c(private$Theta, private$B, private$M, sqrt(private$S2)),
-          responses, covariates, offsets, weights, self$q, opts
+        opts$xtol_abs <- list(Theta = 0, B = 0, M = 0, S = control$xtol_abs)
+        optim_out <- cpp_optimize_rank(
+          list(
+            Theta = private$Theta,
+            B = private$B,
+            M = private$M,
+            S = sqrt(private$S2)
+          ),
+          responses, covariates, offsets, weights, opts
         )
 
         Ji <- optim_out$loglik
@@ -111,8 +114,7 @@ PLNPCAfit <- R6Class(
       #' @description Compute PCA scores in the latent space and update corresponding fields.
       #' @param scale.unit Logical. Should PCA scores be rescaled to have unit variance
       setVisualization = function(scale.unit=FALSE) {
-        P <- t(tcrossprod(private$B, private$M))
-        private$svdBM <- svd(scale(P,TRUE, scale.unit), nv = self$rank)
+        private$svdBM <- svd(scale(self$latent_pos,TRUE, scale.unit), nv = self$rank)
       },
 
       #' @description Update R2, fisher, std_err fields and set up visualization
@@ -134,16 +136,6 @@ PLNPCAfit <- R6Class(
           stop("Louis approximation scheme not available yet for object of class PLNPLCA, use type = \"wald\" instead.")
         }
         super$compute_fisher(type = "wald", X = X)
-      },
-
-      ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ## Extractors ------------------------
-      #' @description Compute matrix of latent positions, noted as Z in the model.
-      #' Useful to compute the likelihood or for data visualization
-      #' @return a n x q matrix of latent positions.
-      latent_pos = function(covariates, offsets) {
-        latentPos <- tcrossprod(private$M, private$B) + tcrossprod(covariates, private$Theta) + offsets
-        latentPos
       },
 
       ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -258,7 +250,7 @@ PLNPCAfit <- R6Class(
       show = function() {
         super$show(paste0("Poisson Lognormal with rank constrained for PCA (rank = ",self$rank,")\n"))
         cat("* Additional fields for PCA\n")
-        cat("    $percent_var, $corr_circle, $scores, $rotation\n")
+        cat("    $percent_var, $corr_circle, $scores, $rotation, $eig, $var, $ind\n")
         cat("* Additional S3 methods for PCA\n")
         cat("    plot.PLNPCAfit()\n")
       }
@@ -280,11 +272,13 @@ PLNPCAfit <- R6Class(
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     active = list(
       #' @field rank the dimension of the current model
-      rank = function() {ncol(private$B)},
+      rank = function() {self$q},
       #' @field nb_param number of parameters in the current PLN model
-      nb_param = function() {self$p * (self$d + self$rank)},
+      nb_param = function() {self$p * (self$d + self$q) - self$q * (self$q - 1)/2},
       #' @field entropy entropy of the variational distribution
       entropy  = function() {.5 * (self$n * self$q * log(2*pi*exp(1)) + sum(log(private$S2)))},
+      #' @field latent_pos a matrix: values of the latent position vector (Z) without covariates effects or offset
+      latent_pos = function() {t(tcrossprod(private$B, private$M))},
       #' @field model_par a list with the matrices associated with the estimated parameters of the pPCA model: Theta (covariates), Sigma (latent covariance) and B (latent loadings)
       model_par = function() {
         par <- super$model_par
@@ -294,26 +288,74 @@ PLNPCAfit <- R6Class(
       #' @field percent_var the percent of variance explained by each axis
       percent_var = function() {
         eigen.val <- private$svdBM$d[1:self$rank]^2
-        round(eigen.val/sum(eigen.val),4)
+        setNames(round(eigen.val/sum(eigen.val)*self$R_squared,4), paste0("PC", 1:self$rank))
       },
       #' @field corr_circle a matrix of correlations to plot the correlation circles
       corr_circle = function() {
-        corr <- t(t(private$svdBM$v[, 1:self$rank, drop = FALSE]) * private$svdBM$d[1:self$rank]^2)
+        corr <- private$svdBM$v[, 1:self$rank] * matrix(private$svdBM$d[1:self$rank], byrow = TRUE, nrow = self$p, ncol = self$rank)
         corr <- corr/sqrt(rowSums(corr^2))
         rownames(corr) <- rownames(private$Sigma)
+        colnames(corr) <- paste0("PC", 1:self$rank)
         corr
       },
       #' @field scores a matrix of scores to plot the individual factor maps (a.k.a. principal components)
       scores     = function() {
-        scores <- t(t(private$svdBM$u[, 1:self$rank]) * private$svdBM$d[1:self$rank])
+        scores <- private$svdBM$u[, 1:self$rank] * matrix(private$svdBM$d[1:self$rank], byrow = TRUE, nrow = self$n, ncol = self$rank)
         rownames(scores) <- rownames(private$M)
+        colnames(scores) <- paste0("PC", 1:self$rank)
         scores
       },
       #' @field rotation a matrix of rotation of the latent space
       rotation   = function() {
         rotation <- private$svdBM$v[, 1:self$rank, drop = FALSE]
         rownames(rotation) <- rownames(private$Sigma)
+        colnames(rotation) <- paste0("PC", 1:self$rank)
         rotation
+      },
+      #' @field eig description of the eigenvalues, similar to percent_var but for use with external methods
+      eig = function() {
+        eigen.val <- private$svdBM$d[1:self$rank]^2
+        matrix(
+          c(eigen.val,                                                # eigenvalues
+            100 * self$R_squared * eigen.val / sum(eigen.val),        # percentage of variance
+            100 * self$R_squared * cumsum(eigen.val) / sum(eigen.val) # cumulative percentage of variance
+          ),
+          ncol = 3,
+          dimnames = list(paste("comp", 1:self$rank), c("eigenvalue", "percentage of variance", "cumulative percentage of variance"))
+        )
+      },
+      #' @field var a list of data frames with PCA results for the variables: `coord` (coordinates of the variables), `cor` (correlation between variables and dimensions), `cos2` (Cosine of the variables) and `contrib` (contributions of the variable to the axes)
+      var = function() {
+        coord  <- private$svdBM$v[, 1:self$rank] * matrix(private$svdBM$d[1:self$rank], ncol = self$rank, nrow = self$p, byrow = TRUE)
+        ## coord[j, k] = d[k] * v[j, k]
+        var_sd <- sqrt(rowSums(coord^2))
+        coord  <- coord / var_sd
+        cor    <- coord
+        cos2 <- cor^2
+        contrib <- 100 * private$svdBM$v[, 1:self$rank, drop = FALSE]^2
+        dimnames(coord) <- dimnames(cor) <- dimnames(cos2) <- dimnames(contrib) <- list(rownames(private$Sigma), paste0("Dim.", 1:self$rank))
+        list(coord   = coord,
+             cor     = cor,
+             cos2    = cos2,
+             contrib = contrib)
+      },
+      #' @field ind a list of data frames with PCA results for the individuals: `coord` (coordinates of the individuals), `cos2` (Cosine of the individuals), `contrib` (contributions of individuals to an axis inertia) and `dist` (distance of individuals to the origin).
+      ind = function() {
+        coord  <- private$svdBM$u[, 1:self$rank] * matrix(private$svdBM$d[1:self$rank], ncol = self$rank, nrow = self$n, byrow = TRUE)
+        ## coord[i, k] = d[k] * v[i, k]
+        dist_origin <- sqrt(rowSums(coord^2))
+        cos2 <- coord^2 / dist_origin^2
+        contrib <- 100 * private$svdBM$u[, 1:self$rank, drop = FALSE]^2
+        dimnames(coord) <- dimnames(cos2) <- dimnames(contrib) <- list(rownames(private$M), paste0("Dim.", 1:self$rank))
+        names(dist_origin) <- rownames(private$M)
+        list(coord   = coord,
+             cos2    = cos2,
+             contrib = contrib,
+             dist    = dist_origin)
+      },
+      #' @field call Hacky binding for compatibility with factoextra functions
+      call = function() {
+        list(scale.unit = FALSE)
       }
     )
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

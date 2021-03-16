@@ -17,7 +17,7 @@
 #' @param offsets offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class
 #' @param weights an optional vector of observation weights to be used in the fitting process.
 #' @param grouping a factor specifying the class of each observation used for discriminant analysis.
-#' @param model model used for fitting, extracted from the formula in the upper-level call
+#' @param formula model formula used for fitting, extracted from the formula in the upper-level call
 #' @param control a list for controlling the optimization. See details.
 #' @param xlevels named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.
 #' @param nullModel null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.
@@ -52,8 +52,9 @@ PLNLDAfit <- R6Class(
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Creation functions ----------------
     #' @description Initialize a [`PLNLDAfit`] object
-    initialize = function(grouping, responses, covariates, offsets, weights, model, xlevels, control) {
-      super$initialize(responses, covariates, offsets, weights, model, xlevels, control)
+    initialize = function(grouping, responses, covariates, offsets, weights, formula, xlevels, control) {
+      covariates <- cbind(covariates, model.matrix( ~ grouping + 0))
+      super$initialize(responses, covariates, offsets, weights, formula, xlevels, control)
       private$grouping <- grouping
       super$optimize(responses, covariates, offsets, weights, control)
     },
@@ -63,13 +64,14 @@ PLNLDAfit <- R6Class(
     #' @description Compute group means and axis of the LDA (noted B in the model) in the
     #' latent space, update corresponding fields
     #' @param X Abundance matrix.
-    #' @param covar design matrix. Automatically built from the covariates and the formula from the call
-    #' @param design_group design matrix for the grouping variable
-    optimize = function(X, covar, design_group, control) {
+    #' @param covariates design matrix. Automatically built from the covariates and the formula from the call
+    #' @param grouping design matrix for the grouping variable
+    optimize = function(grouping, covariates, control) {
+      design_group <- model.matrix( ~ grouping + 0)
       ## extract group means
-      if (ncol(covar) > 0) {
-        proj_orth_X <- (diag(self$n) - covar %*% solve(crossprod(covar)) %*% t(covar))
-        P <- proj_orth_X %*% self$latent_pos(X, matrix(0, self$n, self$q))
+      if (ncol(covariates) > 0) {
+        proj_orth_X <- (diag(self$n) - covariates %*% solve(crossprod(covariates)) %*% t(covariates))
+        P <- proj_orth_X %*% (tcrossprod(cbind(covariates, design_group), private$Theta) + private$M)
         Mu <- t(rowsum(P, private$grouping) / tabulate(private$grouping))
       } else {
         Mu <- private$Theta
@@ -86,7 +88,8 @@ PLNLDAfit <- R6Class(
     ## Post treatment --------------------
     #' @description  Update R2, fisher and std_err fields and visualization
     #' after optimization
-    postTreatment = function(responses, covariates, offsets) {
+    postTreatment = function(grouping, responses, covariates, offsets) {
+      covariates <- cbind(covariates, model.matrix( ~ grouping + 0))
       super$postTreatment(responses, covariates, offsets)
       rownames(private$B) <- colnames(private$B) <- colnames(responses)
       if (private$covariance != "spherical") colnames(private$S2) <- 1:self$q
@@ -152,14 +155,14 @@ PLNLDAfit <- R6Class(
 
         ## get back all individual maps
         ind.plot <- lapply(pairs.axes, function(pair) {
-          ggobj <- self$plot_individual_map(axes = pair, plot = FALSE, main="") + theme(legend.position="none")
-          return(ggplotGrob(ggobj))
+          ggobj <- self$plot_individual_map(axes = pair, plot = FALSE, main="") + ggplot2::theme(legend.position="none")
+          ggplot2::ggplotGrob(ggobj)
         })
 
         ## get back all correlation circle
         cor.plot <- lapply(pairs.axes, function(pair) {
           ggobj <- self$plot_correlation_map(axes = pair, plot = FALSE, main = "", cols = var_cols)
-          return(ggplotGrob(ggobj))
+          ggplot2::ggplotGrob(ggobj)
         })
 
         ## plot that appear on the diagonal
@@ -168,7 +171,7 @@ PLNLDAfit <- R6Class(
         percentV.text <- paste("Axes contribution\n\n", paste(paste("axis",axes), paste0(": ", round(100*self$percent_var[axes],3), "%"), collapse="\n"))
 
         diag.grobs <- list(textGrob(percentV.text),
-                           g_legend(self$plot_individual_map(plot=FALSE) + guides(colour = guide_legend(nrow = 4, title="classification"))),
+                           g_legend(self$plot_individual_map(plot=FALSE) + ggplot2::guides(colour = ggplot2::guide_legend(nrow = 4, title="classification"))),
                            textGrob(criteria.text))
         if (nb_axes > 3)
           diag.grobs <- c(diag.grobs, rep(list(nullGrob()), nb_axes - 3))
@@ -221,13 +224,13 @@ PLNLDAfit <- R6Class(
                        prior = NULL,
                        control = list(), envir = parent.frame()) {
 
-      type = match.arg(type)
+      type <- match.arg(type)
 
       if (type == "scores") scale <- "prob"
-      scale = match.arg(scale)
+      scale <- match.arg(scale)
 
       ## Extract the model matrices from the new data set with initial formula
-      args <- extract_model(call("PLNLDA", formula = private$model, data = newdata, xlev = private$xlevels), envir)
+      args <- extract_model(call("PLNLDA", formula = private$formula, data = newdata, xlev = private$xlevels), envir)
 
       ## Problem dimensions
       n.new  <- nrow(args$Y)
@@ -250,9 +253,6 @@ PLNLDAfit <- R6Class(
       for (k in 1:K) { ## One VE-step to estimate the conditional (variational) likelihood of each group
         grouping <- factor(rep(groups[k], n.new), levels = groups)
         X <- cbind(args$X, model.matrix( ~ grouping + 0))
-        # - remove intercept so that design matrix is compatible with the one used for inference
-        xint <- match("(Intercept)", colnames(X), nomatch = 0L)
-        if (xint > 0L) X <- X[, -xint, drop = FALSE]
         ve_step <- self$VEstep(X, args$O, args$Y, args$w, control = control)
         cond.log.lik[, k] <- ve_step$log.lik
         if (type == "scores") {
@@ -340,18 +340,20 @@ PLNLDAfit <- R6Class(
     #' @field percent_var the percent of variance explained by each axis
     percent_var = function() {
       eigen.val <- private$svdLDA$d[1:self$rank]^2
-      round(eigen.val/sum(eigen.val),4)
+      setNames(round(eigen.val/sum(eigen.val)*self$R_squared,4), paste0("LD", 1:self$rank))
     },
     #' @field corr_map a matrix of correlations to plot the correlation circles
     corr_map = function() {
       corr <- cor(private$P, self$scores)
       rownames(corr) <- rownames(private$B)
+      colnames(corr) <- paste0("LD", 1:self$rank)
       corr
     },
     #' @field scores a matrix of scores to plot the individual factor maps
     scores     = function() {
       scores <- private$P %*% t(t(private$svdLDA$u[, 1:self$rank]) * private$svdLDA$d[1:self$rank])
       rownames(scores) <- rownames(private$M)
+      colnames(scores) <- paste0("LD", 1:self$rank)
       scores
     },
     #' @field group_means a matrix of group mean vectors in the latent space.

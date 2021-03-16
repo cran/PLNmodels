@@ -12,14 +12,17 @@ isPLNnetworkfamily <- function(Robject) {inherits(Robject, "PLNnetworkfamily")}
 #'
 #' @name plot.PLNnetworkfamily
 #'
+#' @inheritParams plot.PLNfamily
+#' @inherit plot.PLNfamily return details
+#'
 #' @param x an R6 object with class [`PLNnetworkfamily`]
 #' @param type a character, either "criteria", "stability" or "diagnostic" for the type of plot.
 #' @param criteria vector of characters. The criteria to plot in c("loglik", "BIC", "ICL", "R_squared", "EBIC", "pen_loglik").
 #' Default is  c("loglik", "pen_loglik", "BIC", "EBIC"). Only relevant when `type = "criteria"`.
 #' @param log.x logical: should the x-axis be represented in log-scale? Default is `TRUE`.
 #' @param stability scalar: the targeted level of stability in stability plot. Default is .9.
-#' @param annotate logical: should the value of approximated R squared be added to the plot of criteria? Default is `TRUE`.
-#' @param ... additional parameters for S3 compatibility. Not used
+#'
+#'
 #' @examples
 #' data(trichoptera)
 #' trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
@@ -27,22 +30,21 @@ isPLNnetworkfamily <- function(Robject) {inherits(Robject, "PLNnetworkfamily")}
 #' \dontrun{
 #' plot(fits)
 #' }
-#' @return Produces a plot representing the evolution of the criteria of the different models considered,
-#' highlighting the best model in terms of BIC and EBIC (the greater, the better).
-#' These criteria have the form 'loglik - 1/2 * penalty' so that they are on the same scale as the model loglikelihood.
-#'
+#' @return Produces either a diagnostic plot (with \code{type = 'diagnostic'}), a stability plot
+#' (with \code{type = 'stability'}) or the evolution of the criteria of the different models considered
+#' (with \code{type = 'criteria'}, the default).
 #' @export
 plot.PLNnetworkfamily <-
   function(x,
            type     = c("criteria", "stability", "diagnostic"),
            criteria = c("loglik", "pen_loglik", "BIC", "EBIC"),
+           reverse = FALSE,
            log.x    = TRUE,
-           stability = 0.9,
-           annotate = TRUE, ...) {
+           stability = 0.9, ...) {
   stopifnot(isPLNnetworkfamily(x))
   type <- match.arg(type)
   if (type == "criteria")
-    p <- x$plot(criteria, annotate)
+    p <- x$plot(criteria, reverse)
   if (type == "stability")
     p <- x$plot_stars(stability, log.x)
   if (type == "diagnostic")
@@ -60,7 +62,7 @@ getModel.PLNnetworkfamily <- function(Robject, var, index = NULL) {
 
 #' @describeIn getBestModel Model extraction for [`PLNnetworkfamily`]
 #' @export
-getBestModel.PLNnetworkfamily <- function(Robject, crit = c("BIC", "loglik", "R_squared", "EBIC", "StARS"), ...) {
+getBestModel.PLNnetworkfamily <- function(Robject, crit = c("BIC", "EBIC", "StARS"), ...) {
   stopifnot(isPLNnetworkfamily(Robject))
   stability <- list(...)[["stability"]]
   if (is.null(stability)) stability <- 0.9
@@ -96,7 +98,6 @@ coefficient_path <- function(Robject, precision = TRUE, corr = TRUE) {
 #' @param Robject an object with class [`PLNnetworkfamily`], i.e. an output from [PLNnetwork()]
 #' @param subsamples a list of vectors describing the subsamples. The number of vectors (or list length) determines th number of subsamples used in the stability selection. Automatically set to 20 subsamples with size \code{10*sqrt(n)} if \code{n >= 144} and \code{0.8*n} otherwise following Liu et al. (2010) recommendations.
 #' @param control a list controlling the main optimization process in each call to PLNnetwork. See [PLNnetwork()] for details.
-#' @param mc.cores the number of cores to used. Default is 1.
 #' @param force force computation of the stability path, even if a previous one has been detected.
 #'
 #' @return the list of subsamples. The estimated probabilities of selection of the edges are stored in the fields `stability_path` of the initial Robject with class [`PLNnetworkfamily`]
@@ -110,11 +111,10 @@ coefficient_path <- function(Robject, precision = TRUE, corr = TRUE) {
 #' stability_selection(nets, subsamples = subs)
 #' }
 #' @export
-stability_selection <- function(Robject, subsamples = NULL, control = list(),
-                                mc.cores = 1, force = FALSE) {
+stability_selection <- function(Robject, subsamples = NULL, control = list(), force = FALSE) {
   stopifnot(isPLNnetworkfamily(Robject))
   if (force || anyNA(Robject$stability)) {
-    Robject$stability_selection(subsamples, control, mc.cores)
+    Robject$stability_selection(subsamples, control)
   } else {
     message("Previous stability selection detected. Use \"force = TRUE\" to recompute it.")
   }

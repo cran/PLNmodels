@@ -34,6 +34,7 @@ The function \code{\link[=PLNPCA]{PLNPCA()}}, the class \code{\link[=PLNPCAfit]{
 \itemize{
 \item \href{#method-new}{\code{PLNPCAfamily$new()}}
 \item \href{#method-optimize}{\code{PLNPCAfamily$optimize()}}
+\item \href{#method-getModel}{\code{PLNPCAfamily$getModel()}}
 \item \href{#method-getBestModel}{\code{PLNPCAfamily$getBestModel()}}
 \item \href{#method-plot}{\code{PLNPCAfamily$plot()}}
 \item \href{#method-show}{\code{PLNPCAfamily$show()}}
@@ -43,7 +44,6 @@ The function \code{\link[=PLNPCA]{PLNPCA()}}, the class \code{\link[=PLNPCAfit]{
 \if{html}{
 \out{<details open ><summary>Inherited methods</summary>}
 \itemize{
-\item \out{<span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfamily" data-id="getModel">}\href{../../PLNmodels/html/PLNfamily.html#method-getModel}{\code{PLNmodels::PLNfamily$getModel()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfamily" data-id="postTreatment">}\href{../../PLNmodels/html/PLNfamily.html#method-postTreatment}{\code{PLNmodels::PLNfamily$postTreatment()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfamily" data-id="print">}\href{../../PLNmodels/html/PLNfamily.html#method-print}{\code{PLNmodels::PLNfamily$print()}}\out{</span>}
 }
@@ -61,7 +61,7 @@ Initialize all models in the collection.
   covariates,
   offsets,
   weights,
-  model,
+  formula,
   xlevels,
   control
 )}\if{html}{\out{</div>}}
@@ -80,7 +80,7 @@ Initialize all models in the collection.
 
 \item{\code{weights}}{the vector of observation weights}
 
-\item{\code{model}}{model used for fitting, extracted from the formula in the upper-level call}
+\item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
 
 \item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.}
 
@@ -107,19 +107,41 @@ Call to the C++ optimizer on all models of the collection
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-getModel"></a>}}
+\if{latex}{\out{\hypertarget{method-getModel}{}}}
+\subsection{Method \code{getModel()}}{
+Extract model from collection and add "PCA" class for compatibility with \code{\link[factoextra:fviz]{factoextra::fviz()}}
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfamily$getModel(var, index = NULL)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{var}}{value of the parameter (rank for PLNPCA, sparsity for PLNnetwork) that identifies the model to be extracted from the collection. If no exact match is found, the model with closest parameter value is returned with a warning.}
+
+\item{\code{index}}{Integer index of the model to be returned. Only the first value is taken into account.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+a \code{\link{PLNPCAfit}} object
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getBestModel"></a>}}
 \if{latex}{\out{\hypertarget{method-getBestModel}{}}}
 \subsection{Method \code{getBestModel()}}{
 Extract best model in the collection
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfamily$getBestModel(crit = c("BIC", "ICL", "R_squared"))}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfamily$getBestModel(crit = c("ICL", "BIC"))}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{crit}}{a character for the criterion used to performed the selection. Either
-"BIC", "ICL", or "R_squared". Default is \code{BIC}}
+"ICL", "BIC". Default is \code{ICL}}
 }
 \if{html}{\out{</div>}}
 }
@@ -133,7 +155,7 @@ a \code{\link{PLNPCAfit}} object
 \subsection{Method \code{plot()}}{
 Lineplot of selected criteria for all models in the collection
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfamily$plot(criteria = c("loglik", "BIC", "ICL"), annotate = TRUE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfamily$plot(criteria = c("loglik", "BIC", "ICL"), reverse = FALSE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -141,7 +163,9 @@ Lineplot of selected criteria for all models in the collection
 \describe{
 \item{\code{criteria}}{A valid model selection criteria for the collection of models. Any of "loglik", "BIC" or "ICL" (all).}
 
-\item{\code{annotate}}{Logical. Should R2 be added to the plot (defaults to \code{TRUE})}
+\item{\code{reverse}}{A logical indicating whether to plot the value of the criteria in the "natural" direction
+(loglik - penalty) or in the "reverse" direction (-2 loglik + penalty). Default to FALSE, i.e use the natural direction, on
+the same scale as the log-likelihood.}
 }
 \if{html}{\out{</div>}}
 }

@@ -31,6 +31,8 @@ The function \code{\link{PLNPCA}}, the class \code{\link[=PLNPCAfamily]{PLNPCAfa
 
 \item{\code{entropy}}{entropy of the variational distribution}
 
+\item{\code{latent_pos}}{a matrix: values of the latent position vector (Z) without covariates effects or offset}
+
 \item{\code{model_par}}{a list with the matrices associated with the estimated parameters of the pPCA model: Theta (covariates), Sigma (latent covariance) and B (latent loadings)}
 
 \item{\code{percent_var}}{the percent of variance explained by each axis}
@@ -40,6 +42,14 @@ The function \code{\link{PLNPCA}}, the class \code{\link[=PLNPCAfamily]{PLNPCAfa
 \item{\code{scores}}{a matrix of scores to plot the individual factor maps (a.k.a. principal components)}
 
 \item{\code{rotation}}{a matrix of rotation of the latent space}
+
+\item{\code{eig}}{description of the eigenvalues, similar to percent_var but for use with external methods}
+
+\item{\code{var}}{a list of data frames with PCA results for the variables: \code{coord} (coordinates of the variables), \code{cor} (correlation between variables and dimensions), \code{cos2} (Cosine of the variables) and \code{contrib} (contributions of the variable to the axes)}
+
+\item{\code{ind}}{a list of data frames with PCA results for the individuals: \code{coord} (coordinates of the individuals), \code{cos2} (Cosine of the individuals), \code{contrib} (contributions of individuals to an axis inertia) and \code{dist} (distance of individuals to the origin).}
+
+\item{\code{call}}{Hacky binding for compatibility with factoextra functions}
 }
 \if{html}{\out{</div>}}
 }
@@ -52,7 +62,6 @@ The function \code{\link{PLNPCA}}, the class \code{\link[=PLNPCAfamily]{PLNPCAfa
 \item \href{#method-setVisualization}{\code{PLNPCAfit$setVisualization()}}
 \item \href{#method-postTreatment}{\code{PLNPCAfit$postTreatment()}}
 \item \href{#method-compute_fisher}{\code{PLNPCAfit$compute_fisher()}}
-\item \href{#method-latent_pos}{\code{PLNPCAfit$latent_pos()}}
 \item \href{#method-plot_individual_map}{\code{PLNPCAfit$plot_individual_map()}}
 \item \href{#method-plot_correlation_circle}{\code{PLNPCAfit$plot_correlation_circle()}}
 \item \href{#method-plot_PCA}{\code{PLNPCAfit$plot_PCA()}}
@@ -63,11 +72,11 @@ The function \code{\link{PLNPCA}}, the class \code{\link[=PLNPCAfamily]{PLNPCAfa
 \if{html}{
 \out{<details open ><summary>Inherited methods</summary>}
 \itemize{
+\item \out{<span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="VEstep">}\href{../../PLNmodels/html/PLNfit.html#method-VEstep}{\code{PLNmodels::PLNfit$VEstep()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="compute_standard_error">}\href{../../PLNmodels/html/PLNfit.html#method-compute_standard_error}{\code{PLNmodels::PLNfit$compute_standard_error()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="predict">}\href{../../PLNmodels/html/PLNfit.html#method-predict}{\code{PLNmodels::PLNfit$predict()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="print">}\href{../../PLNmodels/html/PLNfit.html#method-print}{\code{PLNmodels::PLNfit$print()}}\out{</span>}
 \item \out{<span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="set_R2">}\href{../../PLNmodels/html/PLNfit.html#method-set_R2}{\code{PLNmodels::PLNfit$set_R2()}}\out{</span>}
-\item \out{<span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="VEstep">}\href{../../PLNmodels/html/PLNfit.html#method-VEstep}{\code{PLNmodels::PLNfit$VEstep()}}\out{</span>}
 }
 \out{</details>}
 }
@@ -83,7 +92,7 @@ Initialize a \code{\link{PLNPCAfit}} object
   covariates,
   offsets,
   weights,
-  model,
+  formula,
   xlevels,
   control
 )}\if{html}{\out{</div>}}
@@ -102,7 +111,7 @@ Initialize a \code{\link{PLNPCAfit}} object
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
 
-\item{\code{model}}{model used for fitting, extracted from the formula in the upper-level call}
+\item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
 
 \item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.}
 
@@ -248,29 +257,6 @@ Safely compute the fisher information matrix (FIM)
 }
 \subsection{Returns}{
 a sparse matrix with sensible dimension names
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-latent_pos"></a>}}
-\if{latex}{\out{\hypertarget{method-latent_pos}{}}}
-\subsection{Method \code{latent_pos()}}{
-Compute matrix of latent positions, noted as Z in the model.
-Useful to compute the likelihood or for data visualization
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$latent_pos(covariates, offsets)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{covariates}}{design matrix (called X in the model). Will usually be extracted from the corresponding field in \code{\link{PLNfamily}}}
-
-\item{\code{offsets}}{offset matrix (called O in the model). Will usually be extracted from the corresponding field in \code{\link{PLNfamily}}}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-a n x q matrix of latent positions.
 }
 }
 \if{html}{\out{<hr>}}

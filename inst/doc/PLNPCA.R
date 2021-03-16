@@ -10,6 +10,11 @@ knitr::opts_chunk$set(
 library(PLNmodels)
 library(ggplot2)
 library(corrplot)
+library(factoextra)
+
+## ----future-------------------------------------------------------------------
+library(future)
+plan(multisession, workers = 2)
 
 ## ----data_load----------------------------------------------------------------
 data(trichoptera)
@@ -34,6 +39,9 @@ PCA_models$convergence  %>% knitr::kable()
 ## ----plot nocov, fig.width=7, fig.height=5------------------------------------
 plot(PCA_models)
 
+## ----plot nocov-reverse, fig.width=7, fig.height=5----------------------------
+plot(PCA_models, reverse = TRUE)
+
 ## ----model extraction---------------------------------------------------------
 myPCA_ICL <- getBestModel(PCA_models, "ICL") 
 myPCA_BIC <- getModel(PCA_models, 3) # getBestModel(PCA_models, "BIC")  is equivalent here 
@@ -55,6 +63,29 @@ myPCA_ICL$scores %>% head() %>% knitr::kable()
 
 ## ----show PLNPCAfit-----------------------------------------------------------
 myPCA_ICL
+
+## ----pca_bindings_example-----------------------------------------------------
+## All summaries associated to the individuals
+str(myPCA_ICL$ind)
+## Coordinates of the individuals in the principal plane
+head(myPCA_ICL$ind$coord)
+
+## ----pca_bindings-------------------------------------------------------------
+## Eigenvalues
+factoextra::get_eig(myPCA_ICL)
+## Variables
+factoextra::get_pca_var(myPCA_ICL)
+## Individuals
+factoextra::get_pca_ind(myPCA_ICL)
+
+## ----fviz_biplot--------------------------------------------------------------
+factoextra::fviz_pca_biplot(myPCA_ICL)
+
+## ----fviz_cor_circle----------------------------------------------------------
+factoextra::fviz_pca_var(myPCA_ICL)
+
+## ----fviz_principal_plane-----------------------------------------------------
+factoextra::fviz_pca_ind(myPCA_ICL)
 
 ## ----cov----------------------------------------------------------------------
 PCA_models_cov <- 

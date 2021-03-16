@@ -22,7 +22,6 @@
 #' * "maxtime" stop when the optimization time (in seconds) exceeds maxtime. Default is -1 (no restriction)
 #' * "algorithm" the optimization method used by NLOPT among LD type, i.e. "CCSAQ", "MMA", "LBFGS", "VAR1", "VAR2". See NLOPT documentation for further details. Default is "CCSAQ".
 #'
-#'
 #' @rdname PLN
 #' @include PLNfit-class.R
 #' @examples
@@ -38,12 +37,11 @@ PLN <- function(formula, data, subset, weights, control = list()) {
   args <- extract_model(match.call(expand.dots = FALSE), parent.frame())
 
   ## define default control parameters for optim and eventually overwrite them by user-defined parameters
-  ctrl <- PLN_param(control, nrow(args$Y), ncol(args$Y), ncol(args$X))
+  ctrl <- PLN_param(control, nrow(args$Y), ncol(args$Y))
 
   ## initialization
   if (ctrl$trace > 0) cat("\n Initialization...")
-  myPLN <- PLNfit$new(args$Y, args$X, args$O, args$w,
-                      args$model, args$xlevels, ctrl)
+  myPLN <- PLNfit$new(args$Y, args$X, args$O, args$w, args$formula, args$xlevels, ctrl)
 
   ## optimization
   if (ctrl$trace > 0) cat("\n Adjusting a PLN model with", ctrl$covariance,"covariance model")

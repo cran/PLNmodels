@@ -1,7 +1,7 @@
 #' An R6 Class to represent a PLNfit in a standard, general framework
 #'
 #' @description The function [PLN()] fit a model which is an instance of a object with class [`PLNfit`].
-#' Objects produced by the functions [PLNnetwork()], [PLNPCA()] and [PLNLDA()] also enjoy the methods of [PLNfit()] by inheritance.
+#' Objects produced by the functions [PLNnetwork()], [PLNPCA()], [PLNmixture()] and [PLNLDA()] also enjoy the methods of [PLNfit()] by inheritance.
 #'
 #' This class comes with a set of R6 methods, some of them being useful for the user and exported as S3 methods.
 #' See the documentation for [coef()], [sigma()],
@@ -13,7 +13,7 @@
 #' @param covariates design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class
 #' @param offsets offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class
 #' @param weights an optional vector of observation weights to be used in the fitting process.
-#' @param model model used for fitting, extracted from the formula in the upper-level call
+#' @param formula model formula used for fitting, extracted from the formula in the upper-level call
 #' @param control a list for controlling the optimization. See details.
 #' @param xlevels named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.
 #' @param nullModel null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.
@@ -69,23 +69,16 @@ PLNfit <- R6Class(
     #' @importFrom stats lm.wfit lm.fit poisson residuals coefficients runif
     ## TODO: Once "set" is supported by Roxygen go back to external definition using
     ## PLNfit$set("public", "initialize", { ... })
-    initialize = function(responses, covariates, offsets, weights, model, xlevels, control) {
+    ## See https://github.com/r-lib/roxygen2/issues/931
+    initialize = function(responses, covariates, offsets, weights, formula, xlevels, control) {
       ## problem dimensions
       n <- nrow(responses); p <- ncol(responses); d <- ncol(covariates)
 
       ## save the formula call as specified by the user
-      private$model      <- model
+      private$formula    <- formula
       private$xlevels    <- xlevels
       ## initialize the covariance model
       private$covariance <- control$covariance
-      private$optimizer  <-
-        switch(control$covariance,
-               "spherical" = optim_spherical,
-               "diagonal"  = optim_diagonal ,
-               "full"      = optim_full     ,
-               "rank"      = optim_rank     ,
-               "sparse"    = optim_sparse
-        )
 
       if (isPLNfit(control$inception)) {
         if (control$trace > 1) cat("\n User defined inceptive PLN model")
@@ -113,15 +106,26 @@ PLNfit <- R6Class(
           private$Sigma <- crossprod(residuals)/n + diag(colMeans(private$S2), nrow = p)
         }
       }
-
     },
 
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Optimizers ----------------------------
     #' @description Call to the C++ optimizer and update of the relevant fields
     optimize = function(responses, covariates, offsets, weights, control) {
-      optim_out <- private$optimizer(
-        c(private$Theta, private$M, sqrt(private$S2)),
+
+      optimizer  <-
+        switch(control$covariance,
+               "spherical" = cpp_optimize_spherical,
+               "diagonal"  = cpp_optimize_diagonal ,
+               "full"      = cpp_optimize_full
+        )
+
+      optim_out <- optimizer(
+        list(
+          Theta = private$Theta,
+          M = private$M,
+          S = sqrt(private$S2)
+        ),
         responses,
         covariates,
         offsets,
@@ -149,7 +153,7 @@ PLNfit <- R6Class(
     #' @description Result of one call to the VE step of the optimization procedure: optimal variational parameters (M, S) and corresponding log likelihood values for fixed model parameters (Sigma, Theta). Intended to position new data in the latent space.
     #' @return A list with three components:
     #'  * the matrix `M` of variational means,
-    #'  * the matrix `S` of variational variances
+    #'  * the matrix `S2` of variational variances
     #'  * the vector `log.lik` of (variational) log-likelihood of each new observation
     VEstep = function(covariates, offsets, responses, weights, control = list()) {
 
@@ -158,17 +162,19 @@ PLNfit <- R6Class(
 
       ## define default control parameters for optim and overwrite by user defined parameters
       control$covariance <- self$vcov_model
-      control <- PLN_param(control, n, p, d)
+      control <- PLN_param(control, n, p)
 
       VEstep_optimizer  <-
         switch(control$covariance,
-               "spherical" = VEstep_PLN_spherical,
-               "diagonal"  = VEstep_PLN__diagonal,
-               "full"      = VEstep_PLN_full
+               "spherical" = cpp_optimize_vestep_spherical,
+               "diagonal"  = cpp_optimize_vestep_diagonal,
+               "full"      = cpp_optimize_vestep_full
         )
 
+      ## Initialize the variational parameters with the appropriate new dimension of the data
       optim_out <- VEstep_optimizer(
-        c(private$M, sqrt(private$S2)),
+        list(M = matrix(0, n, p),
+             S = matrix(sqrt(0.1), n, ifelse(self$vcov_model == "spherical", 1, p))),
         responses,
         covariates,
         offsets,
@@ -179,10 +185,13 @@ PLNfit <- R6Class(
         control
       )
 
+      Ji <- optim_out$loglik
+      attr(Ji, "weights") <- weights
+
       ## output
       list(M       = optim_out$M,
            S2      = (optim_out$S)**2,
-           log.lik = setNames(optim_out$loglik, rownames(responses)))
+           log.lik = setNames(Ji, rownames(responses)))
     },
 
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -190,7 +199,7 @@ PLNfit <- R6Class(
     #' @description Update R2 field after optimization
     set_R2 = function(responses, covariates, offsets, weights, nullModel = NULL) {
       if (is.null(nullModel)) nullModel <- nullModelPoisson(responses, covariates, offsets, weights)
-      loglik <- logLikPoisson(responses, self$latent_pos(covariates, offsets), weights)
+      loglik <- logLikPoisson(responses, self$latent, weights)
       lmin   <- logLikPoisson(responses, nullModel, weights)
       lmax   <- logLikPoisson(responses, fullModelPoisson(responses, weights), weights)
       private$R2 <- (loglik - lmin) / (lmax - lmin)
@@ -251,7 +260,7 @@ PLNfit <- R6Class(
     },
 
     #' @description Update R2, fisher and std_err fields after optimization
-    postTreatment = function(responses, covariates, offsets, weights = rep(1, nrow(responses)), type = c("wald", "louis"), nullModel = NULL) {
+    postTreatment = function(responses, covariates, offsets, weights = rep(1, nrow(responses)), type = c("wald", "louis", "none"), nullModel = NULL) {
       ## compute R2
       self$set_R2(responses, covariates, offsets, weights, nullModel)
       ## Set the name of the matrices according to those of the data matrices,
@@ -263,19 +272,12 @@ PLNfit <- R6Class(
       rownames(private$M) <- rownames(private$S2) <- rownames(responses)
       ## compute and store Fisher Information matrix
       type <- match.arg(type)
-      private$FIM <- self$compute_fisher(type, X = covariates)
-      private$FIM_type <- type
-      ## compute and store matrix of standard errors
-      private$.std_err <- self$compute_standard_error()
-    },
-
-    ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ## Helper functions ----------------------
-    #' @description Compute matrix of latent positions, noted as Z in the model. Used to compute the likelihood or for data visualization
-    #' @return a n x q matrix of latent positions.
-    latent_pos = function(covariates, offsets) {
-      latentPos <- private$M + tcrossprod(covariates, private$Theta) + offsets
-      latentPos
+      if (type != "none") {
+        private$FIM <- self$compute_fisher(type, X = covariates)
+        private$FIM_type <- type
+        ## compute and store matrix of standard errors
+        private$.std_err <- self$compute_standard_error()
+      }
     },
 
     #' @description Predict position, scores or observations of new data.
@@ -287,8 +289,8 @@ PLNfit <- R6Class(
       type = match.arg(type)
 
       ## Extract the model matrices from the new data set with initial formula
-      X <- model.matrix(formula(private$model)[-2], newdata, xlev = private$xlevels)
-      O <- model.offset(model.frame(formula(private$model)[-2], newdata))
+      X <- model.matrix(formula(private$formula)[-2], newdata, xlev = private$xlevels)
+      O <- model.offset(model.frame(formula(private$formula)[-2], newdata))
 
       ## mean latent positions in the parameter space
       EZ <- tcrossprod(X, private$Theta)
@@ -312,7 +314,7 @@ PLNfit <- R6Class(
       print(as.data.frame(round(self$criteria, digits = 3), row.names = ""))
       cat("==================================================================\n")
       cat("* Useful fields\n")
-      cat("    $model_par, $latent, $var_par, $optim_par\n")
+      cat("    $model_par, $latent, $latent_pos, $var_par, $optim_par\n")
       cat("    $loglik, $BIC, $ICL, $loglik_vec, $nb_param, $criteria\n")
       cat("* Useful S3 methods\n")
       cat("    print(), coef(), sigma(), vcov(), fitted(), predict(), standard_error()\n")
@@ -329,7 +331,7 @@ PLNfit <- R6Class(
   ## PRIVATE MEMBERS ----
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   private = list(
-    model      = NA, # the formula call for the model as specified by the user
+    formula    = NA, # the formula call for the model as specified by the user
     xlevels    = NA, # factor levels present in the original data, useful for predict() methods.
     Theta      = NA, # the model parameters for the covariable
     Sigma      = NA, # the covariance matrix
@@ -344,7 +346,6 @@ PLNfit <- R6Class(
     .std_err   = NA, # element-wise standard error for the elements of Theta computed
     # from the Fisher information matrix
     covariance = NA, # a string describing the covariance model
-    optimizer  = NA, # link to the function that performs the optimization
     monitoring = NA  # a list with optimization monitoring quantities
   ),
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -369,6 +370,8 @@ PLNfit <- R6Class(
     var_par    = function() {list(M = private$M, S2 = private$S2)},
     #' @field latent a matrix: values of the latent vector (Z in the model)
     latent     = function() {private$Z},
+    #' @field latent_pos a matrix: values of the latent position vector (Z) without covariates effects or offset
+    latent_pos = function() {private$M},
     #' @field fitted a matrix: fitted values of the observations (A in the model)
     fitted     = function() {private$A},
     #' @field nb_param number of parameters in the current PLN model
@@ -380,8 +383,10 @@ PLNfit <- R6Class(
     vcov_model = function() {private$covariance},
     #' @field optim_par a list with parameters useful for monitoring the optimization
     optim_par  = function() {private$monitoring},
+    #' @field weights observational weights
+    weights     = function() {attr(private$Ji, "weights")},
     #' @field loglik (weighted) variational lower bound of the loglikelihood
-    loglik     = function() {sum(attr(private$Ji, "weights") * private$Ji) },
+    loglik     = function() {sum(self$weights[self$weights > .Machine$double.eps] * private$Ji[self$weights > .Machine$double.eps]) },
     #' @field loglik_vec element-wise variational lower bound of the loglikelihood
     loglik_vec = function() {private$Ji},
     #' @field BIC variational lower bound of the BIC
@@ -392,8 +397,8 @@ PLNfit <- R6Class(
     ICL        = function() {self$BIC - self$entropy},
     #' @field R_squared approximated goodness-of-fit criterion
     R_squared  = function() {private$R2},
-    #' @field criteria a vector with loglik, BIC, ICL, R_squared and number of parameters
-    criteria   = function() {data.frame(nb_param = self$nb_param, loglik = self$loglik, BIC = self$BIC, ICL = self$ICL, R_squared = self$R_squared)}
+    #' @field criteria a vector with loglik, BIC, ICL and number of parameters
+    criteria   = function() {data.frame(nb_param = self$nb_param, loglik = self$loglik, BIC = self$BIC, ICL = self$ICL)}
   )
 
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

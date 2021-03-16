@@ -67,7 +67,7 @@ myPLN <- PLN(Abundance ~ 1, trichoptera)
 myPLN
 
 ## ----fields-access------------------------------------------------------------
-c(myPLN$loglik, myPLN$BIC, myPLN$ICL, myPLN$R_squared)
+c(myPLN$loglik, myPLN$BIC, myPLN$ICL)
 myPLN$criteria
 
 ## ----fitted, fig.cap = "fitted value vs. observation", fig.dim=c(7,5)---------

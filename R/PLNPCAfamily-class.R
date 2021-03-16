@@ -12,7 +12,7 @@
 #' @param covariates the matrix of covariates common to every models
 #' @param offsets the matrix of offsets common to every models
 #' @param weights the vector of observation weights
-#' @param model model used for fitting, extracted from the formula in the upper-level call
+#' @param formula model formula used for fitting, extracted from the formula in the upper-level call
 #' @param control a list for controlling the optimization. See details.
 #' @param xlevels named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.
 #' @param var value of the parameter (`rank` for PLNPCA, `sparsity` for PLNnetwork) that identifies the model to be extracted from the collection. If no exact match is found, the model with closest parameter value is returned with a warning.
@@ -22,6 +22,7 @@
 #' @include PLNfamily-class.R
 #' @importFrom R6 R6Class
 #' @import ggplot2
+#' @import future
 #' @examples
 #' data(trichoptera)
 #' trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
@@ -39,7 +40,7 @@ PLNPCAfamily <- R6Class(
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Creation -----------------------
     #' @description Initialize all models in the collection.
-    initialize = function(ranks, responses, covariates, offsets, weights, model, xlevels, control) {
+    initialize = function(ranks, responses, covariates, offsets, weights, formula, xlevels, control) {
       ## initialize the required fields
       super$initialize(responses, covariates, offsets, weights, control)
       private$params <- ranks
@@ -51,7 +52,7 @@ PLNPCAfamily <- R6Class(
 
       ## instantiate as many models as ranks
       self$models <- lapply(ranks, function(rank){
-        model <- PLNPCAfit$new(rank, responses, covariates, offsets, weights, model, xlevels, control)
+        model <- PLNPCAfit$new(rank, responses, covariates, offsets, weights, formula, xlevels, control)
         model
       })
     },
@@ -60,7 +61,7 @@ PLNPCAfamily <- R6Class(
     ## Optimization -------------------
     #' @description Call to the C++ optimizer on all models of the collection
     optimize = function(control) {
-      self$models <- mclapply(self$models, function(model) {
+      self$models <- future.apply::future_lapply(self$models, function(model) {
         if (control$trace == 1) {
           cat("\t Rank approximation =",model$rank, "\r")
           flush.console()
@@ -71,36 +72,47 @@ PLNPCAfamily <- R6Class(
         }
         model$optimize(self$responses, self$covariates, self$offsets, self$weights, control)
         model
-      }, mc.cores = control$cores, mc.allow.recursive = FALSE)
+      }, future.seed = TRUE, future.scheduling = structure(TRUE, ordering = "random"))
     },
 
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Extractors   -------------------
+    #' @description Extract model from collection and add "PCA" class for compatibility with [`factoextra::fviz()`]
+    # @inheritParams getModel
+    #' @param var	value of the parameter (rank for PLNPCA, sparsity for PLNnetwork) that identifies the model to be extracted from the collection. If no exact match is found, the model with closest parameter value is returned with a warning.
+    #' @param index Integer index of the model to be returned. Only the first value is taken into account.
+    #' @return a [`PLNPCAfit`] object
+    getModel = function(var, index = NULL) {
+      model <- super$getModel(var, index)
+      class(model) <- c(class(model)[class(model) != "R6"], "PCA", "R6")
+      model
+    },
     #' @description Extract best model in the collection
     #' @param crit a character for the criterion used to performed the selection. Either
-    #' "BIC", "ICL", or "R_squared". Default is `BIC`
+    #' "ICL", "BIC". Default is `ICL`
     #' @return a [`PLNPCAfit`] object
-    getBestModel = function(crit = c("BIC", "ICL", "R_squared")){
+    getBestModel = function(crit = c("ICL", "BIC")){
       crit <- match.arg(crit)
       stopifnot(!anyNA(self$criteria[[crit]]))
       id <- 1
       if (length(self$criteria[[crit]]) > 1) {
         id <- which.max(self$criteria[[crit]])
       }
-      model <- self$models[[id]]$clone()
-      model
+      self$getModel(index = id)
     },
 
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ## Graphical methdods -------------
+    ## Graphical methods -------------
     #' @description
     #' Lineplot of selected criteria for all models in the collection
     #' @param criteria A valid model selection criteria for the collection of models. Any of "loglik", "BIC" or "ICL" (all).
-    #' @param annotate Logical. Should R2 be added to the plot (defaults to `TRUE`)
+    #' @param reverse A logical indicating whether to plot the value of the criteria in the "natural" direction
+    #' (loglik - penalty) or in the "reverse" direction (-2 loglik + penalty). Default to FALSE, i.e use the natural direction, on
+    #' the same scale as the log-likelihood.
     #' @return A [`ggplot2`] object
-    plot = function(criteria = c("loglik", "BIC", "ICL"), annotate = TRUE) {
+    plot = function(criteria = c("loglik", "BIC", "ICL"), reverse = FALSE) {
       vlines <- sapply(intersect(criteria, c("BIC", "ICL")) , function(crit) self$getBestModel(crit)$rank)
-      p <- super$plot(criteria, annotate) + xlab("rank") + geom_vline(xintercept = vlines, linetype = "dashed", alpha = 0.25)
+      p <- super$plot(criteria, reverse) + xlab("rank") + geom_vline(xintercept = vlines, linetype = "dashed", alpha = 0.25)
       p
     },
 
@@ -112,8 +124,8 @@ PLNPCAfamily <- R6Class(
       cat(" Task: Principal Component Analysis\n")
       cat("========================================================\n")
       cat(" - Ranks considered: from ", min(self$ranks), " to ", max(self$ranks),"\n", sep = "")
-      cat(" - Best model (greater BIC): rank = ", self$getBestModel("BIC")$rank, " - R2 = ", round(self$getBestModel("BIC")$R_squared, 2), "\n", sep = "")
-      cat(" - Best model (greater ICL): rank = ", self$getBestModel("ICL")$rank, " - R2 = ", round(self$getBestModel("ICL")$R_squared, 2), "\n", sep = "")
+      cat(" - Best model (greater BIC): rank = ", self$getBestModel("BIC")$rank, "\n", sep = "")
+      cat(" - Best model (greater ICL): rank = ", self$getBestModel("ICL")$rank, "\n", sep = "")
     }
 
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

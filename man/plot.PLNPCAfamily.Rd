@@ -4,25 +4,30 @@
 \alias{plot.PLNPCAfamily}
 \title{Display the criteria associated with a collection of PLNPCA fits (a PLNPCAfamily)}
 \usage{
-\method{plot}{PLNPCAfamily}(x, criteria = c("loglik", "BIC", "ICL"), annotate = TRUE, ...)
+\method{plot}{PLNPCAfamily}(x, criteria = c("loglik", "BIC", "ICL"), reverse = FALSE, ...)
 }
 \arguments{
-\item{x}{an R6 object with class \code{\link{PLNfamily}}}
+\item{x}{an R6 object with class \code{\link{PLNPCAfamily}}}
 
-\item{criteria}{vector of characters. The criteria to plot in c("loglik", "BIC", "ICL", "R_squared").
+\item{criteria}{vector of characters. The criteria to plot in c("loglik", "BIC", "ICL").
 Default is  c("loglik", "BIC", "ICL").}
 
-\item{annotate}{logical: should the value of approximated R squared be added to the plot?}
+\item{reverse}{A logical indicating whether to plot the value of the criteria in the "natural" direction
+(loglik - 0.5 penalty) or in the "reverse" direction (-2 loglik + penalty). Default to FALSE, i.e use the
+natural direction, on the same scale as the log-likelihood.}
 
 \item{...}{additional parameters for S3 compatibility. Not used}
 }
 \value{
 Produces a plot  representing the evolution of the criteria of the different models considered,
-highlighting the best model in terms of BIC and ICL (the greater, the better).
-These criteria have the form 'loglik - 1/2 * penalty' so that they are on the same scale as the model loglikelihood.
+highlighting the best model in terms of BIC and ICL (see details).
 }
 \description{
 Display the criteria associated with a collection of PLNPCA fits (a PLNPCAfamily)
+}
+\details{
+The BIC and ICL criteria have the form 'loglik - 1/2 * penalty'
+so that they are on the same scale as the model log-likelihood. You can change this direction and use the alternate form '-2*loglik + penalty', as some authors do, by setting \code{reverse = TRUE}.
 }
 \examples{
 data(trichoptera)

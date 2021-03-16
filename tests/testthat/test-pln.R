@@ -82,11 +82,11 @@ test_that("PLN: Check consistency of observation weights - spherical covariance"
   tol <- 1e-2
 
   ## no weights
-  model1 <- PLN(Abundance ~ 1, data = trichoptera, control = list(covariance = "diagonal", trace = 0))
+  model1 <- PLN(Abundance ~ 1, data = trichoptera, control = list(covariance = "spherical", trace = 0))
 
   ## equivalent weigths
-  model2 <- PLN(Abundance ~ 1, data = trichoptera, weights = rep(1.0, nrow(trichoptera)), control = list(covariance = "diagonal", trace = 0))
-  model3 <- PLN(Abundance ~ 1, data = trichoptera, weights = runif(nrow(trichoptera)), control = list(covariance = "diagonal", trace = 0))
+  model2 <- PLN(Abundance ~ 1, data = trichoptera, weights = rep(1.0, nrow(trichoptera)), control = list(covariance = "spherical", trace = 0))
+  model3 <- PLN(Abundance ~ 1, data = trichoptera, weights = runif(nrow(trichoptera)), control = list(covariance = "spherical", trace = 0))
 
   expect_equal(model2$loglik   , model1$loglik   , tolerance = tol)
 })
@@ -127,3 +127,54 @@ test_that("PLN is working with unnamed data matrix",  {
     expect_error(PLN(Abundance ~ 1, data = trichoptera, control=list(algorithm="nawak")))
  })
 
+test_that("PLN: Check that all univariate PLN models are equivalent with the multivariate diagonal case",  {
+
+  p <- ncol(trichoptera$Abundance)
+  Offset <- trichoptera$Offset
+
+  univariate_full <- lapply(1:p, function(j) {
+    Abundance <- trichoptera$Abundance[, j, drop = FALSE]
+    PLN(Abundance ~ 1 + offset(log(Offset)), control = list(trace = 0))
+  })
+
+  univariate_diagonal <- lapply(1:p, function(j) {
+    Abundance <- trichoptera$Abundance[, j, drop = FALSE]
+    PLN(Abundance ~ 1 + offset(log(Offset)), control = list(covariance = "diagonal", trace = 0))
+  })
+
+  univariate_spherical <- lapply(1:p, function(j) {
+    Abundance <- trichoptera$Abundance[, j, drop = FALSE]
+    PLN(Abundance ~ 1 + offset(log(Offset)), control = list(covariance = "spherical", trace = 0))
+  })
+
+  multivariate_diagonal <-
+    PLN(Abundance ~ 1 + offset(log(Offset)), data = trichoptera, control = list(covariance = "diagonal", trace = 0))
+
+  expect_true(all.equal(
+    map_dbl(univariate_spherical, "nb_param"),
+    map_dbl(univariate_full     , "nb_param"),
+    map_dbl(univariate_diagonal , "nb_param")
+  ))
+
+  expect_true(all.equal(
+    map_dbl(univariate_full, "loglik") %>% sum(),
+    multivariate_diagonal$loglik, tolerance = 0.25)
+  )
+
+  expect_true(all.equal(
+    map_dbl(univariate_diagonal, "loglik") %>% sum(),
+    multivariate_diagonal$loglik, tolerance = 0.25)
+  )
+
+   expect_true(all.equal(
+    map_dbl(univariate_spherical, "loglik") %>% sum(),
+    multivariate_diagonal$loglik, tolerance = 0.25)
+  )
+
+  expect_true(all.equal(
+    map(univariate_spherical, sigma) %>% map_dbl(as.double),
+    map(univariate_full     , sigma) %>% map_dbl(as.double),
+    map(univariate_diagonal , sigma) %>% map_dbl(as.double), tolerance = 1e-2
+  ))
+
+})

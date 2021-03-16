@@ -5,7 +5,7 @@
 \title{An R6 Class to represent a PLNfit in a standard, general framework}
 \description{
 The function \code{\link[=PLN]{PLN()}} fit a model which is an instance of a object with class \code{\link{PLNfit}}.
-Objects produced by the functions \code{\link[=PLNnetwork]{PLNnetwork()}}, \code{\link[=PLNPCA]{PLNPCA()}} and \code{\link[=PLNLDA]{PLNLDA()}} also enjoy the methods of \code{\link[=PLNfit]{PLNfit()}} by inheritance.
+Objects produced by the functions \code{\link[=PLNnetwork]{PLNnetwork()}}, \code{\link[=PLNPCA]{PLNPCA()}}, \code{\link[=PLNmixture]{PLNmixture()}} and \code{\link[=PLNLDA]{PLNLDA()}} also enjoy the methods of \code{\link[=PLNfit]{PLNfit()}} by inheritance.
 
 This class comes with a set of R6 methods, some of them being useful for the user and exported as S3 methods.
 See the documentation for \code{\link[=coef]{coef()}}, \code{\link[=sigma]{sigma()}},
@@ -58,6 +58,8 @@ print(myPLN)
 
 \item{\code{latent}}{a matrix: values of the latent vector (Z in the model)}
 
+\item{\code{latent_pos}}{a matrix: values of the latent position vector (Z) without covariates effects or offset}
+
 \item{\code{fitted}}{a matrix: fitted values of the observations (A in the model)}
 
 \item{\code{nb_param}}{number of parameters in the current PLN model}
@@ -65,6 +67,8 @@ print(myPLN)
 \item{\code{vcov_model}}{character: the model used for the covariance (either "spherical", "diagonal" or "full")}
 
 \item{\code{optim_par}}{a list with parameters useful for monitoring the optimization}
+
+\item{\code{weights}}{observational weights}
 
 \item{\code{loglik}}{(weighted) variational lower bound of the loglikelihood}
 
@@ -78,7 +82,7 @@ print(myPLN)
 
 \item{\code{R_squared}}{approximated goodness-of-fit criterion}
 
-\item{\code{criteria}}{a vector with loglik, BIC, ICL, R_squared and number of parameters}
+\item{\code{criteria}}{a vector with loglik, BIC, ICL and number of parameters}
 }
 \if{html}{\out{</div>}}
 }
@@ -93,7 +97,6 @@ print(myPLN)
 \item \href{#method-compute_fisher}{\code{PLNfit$compute_fisher()}}
 \item \href{#method-compute_standard_error}{\code{PLNfit$compute_standard_error()}}
 \item \href{#method-postTreatment}{\code{PLNfit$postTreatment()}}
-\item \href{#method-latent_pos}{\code{PLNfit$latent_pos()}}
 \item \href{#method-predict}{\code{PLNfit$predict()}}
 \item \href{#method-show}{\code{PLNfit$show()}}
 \item \href{#method-print}{\code{PLNfit$print()}}
@@ -152,7 +155,7 @@ Update the current \code{\link{PLNfit}} object
 \subsection{Method \code{new()}}{
 Initialize a \code{\link{PLNfit}} model
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNfit$new(responses, covariates, offsets, weights, model, xlevels, control)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNfit$new(responses, covariates, offsets, weights, formula, xlevels, control)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -166,7 +169,7 @@ Initialize a \code{\link{PLNfit}} model
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
 
-\item{\code{model}}{model used for fitting, extracted from the formula in the upper-level call}
+\item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
 
 \item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.}
 
@@ -228,7 +231,7 @@ Result of one call to the VE step of the optimization procedure: optimal variati
 A list with three components:
 \itemize{
 \item the matrix \code{M} of variational means,
-\item the matrix \code{S} of variational variances
+\item the matrix \code{S2} of variational variances
 \item the vector \code{log.lik} of (variational) log-likelihood of each new observation
 }
 }
@@ -304,7 +307,7 @@ Update R2, fisher and std_err fields after optimization
   covariates,
   offsets,
   weights = rep(1, nrow(responses)),
-  type = c("wald", "louis"),
+  type = c("wald", "louis", "none"),
   nullModel = NULL
 )}\if{html}{\out{</div>}}
 }
@@ -325,28 +328,6 @@ Update R2, fisher and std_err fields after optimization
 \item{\code{nullModel}}{null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.}
 }
 \if{html}{\out{</div>}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-latent_pos"></a>}}
-\if{latex}{\out{\hypertarget{method-latent_pos}{}}}
-\subsection{Method \code{latent_pos()}}{
-Compute matrix of latent positions, noted as Z in the model. Used to compute the likelihood or for data visualization
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNfit$latent_pos(covariates, offsets)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{covariates}}{design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
-
-\item{\code{offsets}}{offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-a n x q matrix of latent positions.
 }
 }
 \if{html}{\out{<hr>}}

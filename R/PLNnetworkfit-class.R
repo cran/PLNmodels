@@ -12,7 +12,7 @@
 #' @param weights an optional vector of observation weights to be used in the fitting process.
 #' @param penalty a positive real number controlling the level of sparsity of the underlying network.
 #' @param control a list for controlling the optimization of the PLN model used at initialization. See [PLNnetwork()] for details.
-#' @param model model used for fitting, extracted from the formula in the upper-level call
+#' @param formula model formula used for fitting, extracted from the formula in the upper-level call
 #' @param xlevels named listed of factor levels included in the models, extracted from the formula in [PLNnetwork()] call
 #' @param nullModel null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.
 #'
@@ -39,8 +39,8 @@ PLNnetworkfit <- R6Class(
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Creation functions ----------------
     #' @description Initialize a [`PLNnetworkfit`] object
-    initialize = function(penalty, responses, covariates, offsets, weights, model, xlevels, control) {
-      super$initialize(responses, covariates, offsets, weights, model, xlevels, control)
+    initialize = function(penalty, responses, covariates, offsets, weights, formula, xlevels, control) {
+      super$initialize(responses, covariates, offsets, weights, formula, xlevels, control)
       private$lambda <- penalty
     },
     #' @description Update fields of a [`PLNnetworkfit`] object
@@ -73,7 +73,7 @@ PLNnetworkfit <- R6Class(
       objective   <- numeric(control$maxit_out)
       convergence <- numeric(control$maxit_out)
       ## start from the standard PLN at initialization
-      par0  <- c(private$Theta, private$M, sqrt(private$S2))
+      par0  <- list(Theta = private$Theta, M = private$M, S = sqrt(private$S2))
       Sigma <- private$Sigma
       objective.old <- -self$loglik
       while (!cond) {
@@ -86,16 +86,16 @@ PLNnetworkfit <- R6Class(
         Omega  <- glasso_out$wi ; if (!isSymmetric(Omega)) Omega <- Matrix::symmpart(Omega)
 
         ## CALL TO NLOPT OPTIMIZATION WITH BOX CONSTRAINT
-        optim_out <- optim_sparse(par0, responses, covariates, offsets, weights, Omega, control)
-
+        optim_out <- cpp_optimize_sparse(par0, responses, covariates, offsets, weights, Omega, control)
         ## Check convergence
         objective[iter]   <- -sum(weights * optim_out$loglik) + self$penalty * sum(abs(Omega))
         convergence[iter] <- abs(objective[iter] - objective.old)/abs(objective[iter])
+
         if ((convergence[iter] < control$ftol_out) | (iter >= control$maxit_out)) cond <- TRUE
 
         ## Prepare next iterate
         Sigma <- optim_out$Sigma
-        par0  <- c(optim_out$Theta, optim_out$M, optim_out$S)
+        par0  <- list(Theta = optim_out$Theta, M = optim_out$M, S = optim_out$S)
         objective.old <- objective[iter]
       }
 

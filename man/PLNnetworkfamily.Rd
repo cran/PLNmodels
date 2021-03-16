@@ -31,7 +31,8 @@ The function \code{\link[=PLNnetwork]{PLNnetwork()}}, the class \code{\link{PLNn
 
 \item{\code{stability}}{mean edge stability along the penalty path}
 
-\item{\code{criteria}}{a data frame with the values of some criteria (variational lower bound J, BIC, ICL and R2, stability) for the collection of models / fits}
+\item{\code{criteria}}{a data frame with the values of some criteria (approximated log-likelihood, (E)BIC, ICL and R2, stability) for the collection of models / fits
+BIC, ICL and EBIC are defined so that they are on the same scale as the model log-likelihood, i.e. with the form, loglik - 0.5 penalty}
 }
 \if{html}{\out{</div>}}
 }
@@ -71,7 +72,7 @@ Initialize all models in the collection
   covariates,
   offsets,
   weights,
-  model,
+  formula,
   xlevels,
   control
 )}\if{html}{\out{</div>}}
@@ -90,7 +91,7 @@ Initialize all models in the collection
 
 \item{\code{weights}}{the vector of observation weights}
 
-\item{\code{model}}{model used for fitting, extracted from the formula in the upper-level call}
+\item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
 
 \item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.}
 
@@ -125,21 +126,15 @@ Call to the C++ optimizer on all models of the collection
 \subsection{Method \code{stability_selection()}}{
 Compute the stability path by stability selection
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfamily$stability_selection(
-  subsamples = NULL,
-  control = list(),
-  mc.cores = 1
-)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfamily$stability_selection(subsamples = NULL, control = list())}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{subsamples}}{a list of vectors describing the subsamples. The number of vectors (or list length) determines th number of subsamples used in the stability selection. Automatically set to 20 subsamples with size \code{10*sqrt(n)} if \code{n >= 144} and \code{0.8*n} otherwise following Liu et al. (2010) recommendations.}
+\item{\code{subsamples}}{a list of vectors describing the subsamples. The number of vectors (or list length) determines the number of subsamples used in the stability selection. Automatically set to 20 subsamples with size \code{10*sqrt(n)} if \code{n >= 144} and \code{0.8*n} otherwise following Liu et al. (2010) recommendations.}
 
 \item{\code{control}}{a list controlling the main optimization process in each call to PLNnetwork. See \code{\link[=PLNnetwork]{PLNnetwork()}} for details.}
-
-\item{\code{mc.cores}}{the number of cores to used. Default is 1.}
 }
 \if{html}{\out{</div>}}
 }
@@ -170,7 +165,7 @@ Extract the regularization path of a \code{\link{PLNnetworkfamily}}
 Extract the best network in the family according to some criteria
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfamily$getBestModel(
-  crit = c("BIC", "loglik", "R_squared", "EBIC", "StARS"),
+  crit = c("BIC", "EBIC", "StARS"),
   stability = 0.9
 )}\if{html}{\out{</div>}}
 }
@@ -193,8 +188,8 @@ Display various outputs (goodness-of-fit criteria, robustness, diagnostic) assoc
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfamily$plot(
   criteria = c("loglik", "pen_loglik", "BIC", "EBIC"),
-  log.x = TRUE,
-  annotate
+  reverse = FALSE,
+  log.x = TRUE
 )}\if{html}{\out{</div>}}
 }
 
@@ -203,9 +198,11 @@ Display various outputs (goodness-of-fit criteria, robustness, diagnostic) assoc
 \describe{
 \item{\code{criteria}}{vector of characters. The criteria to plot in \code{c("loglik", "pen_loglik", "BIC", "EBIC")}. Defaults to all of them.}
 
-\item{\code{log.x}}{logical: should the x-axis be represented in log-scale? Default is \code{TRUE}.}
+\item{\code{reverse}}{A logical indicating whether to plot the value of the criteria in the "natural" direction
+(loglik - 0.5 penalty) or in the "reverse" direction (-2 loglik + penalty). Default to FALSE, i.e use the
+natural direction, on the same scale as the log-likelihood..}
 
-\item{\code{annotate}}{logical: should the value of approximated R squared be added to the plot of criteria? Default is \code{TRUE}.}
+\item{\code{log.x}}{logical: should the x-axis be represented in log-scale? Default is \code{TRUE}.}
 }
 \if{html}{\out{</div>}}
 }

@@ -1,7 +1,43 @@
+# PLNmodels 0.11.4
+
+* use future_lapply in PLNPCA, PLNmixture and stability_selection (plan must be set by the user)
+* bug fix in prediction for PLN-LDA
+* bug fix in gradients of PLN-network and PLN-spherical
+* suppressing method `$latent_pos()` which is equivalent to active binding `$latent`
+* finalizing integration of PLNmixture (in particular faster smoothing)
+* added an argument 'reverse' to the plot methods for criteria, so that users can get their "usual" BIC definition (-2 loglik)
+
+# PLNmodels 0.11.3
+
+* support for covariates in PLNmixture (spherical, diagonal, full)
+* more support for PLNmixture (S3/R6 methods, vignette)
+
+# PLNmodels 0.11.2
+
+* Rewriting C++ by merging modern_cpp to dev, thanks to François Gindraud
+* various bug fixes in offset
+* less verbose about R squared when questionable
+* correction in BIC/ICL for PLNPCA
+* Enhanced vignettes for PLNPCA and PLNmixture
+
+# PLNmodels 0.11.1
+
+* Add compatibility with factoextra for PLNPCA
+
+# PLNmodels 0.11.0
+
+* Add development version of PLNmixture
+
+# PLNmodels 0.10.7
+
+* add type = "poscounts" option to RLE normalization
+* added wrench normalization to the list of available offsets
+* added the oaks data set from Jakuschkin et al (2016)
+
 # PLNmodels 0.10.6
 
 * Correction in likelihood of diagonal PLN
-* amending test-pln to fullfil CRAN request (error on ATLAS variant of BLAS...)
+* amending test-pln to fulfill CRAN request (error on ATLAS variant of BLAS...)
 
 # PLNmodels 0.10.5
 

@@ -5,6 +5,7 @@ knitr::opts_chunk$set(
   rows.print = 5,
   message = FALSE, 
   warning = FALSE)
+set.seed(178643)
 
 ## ----requirement--------------------------------------------------------------
 library(PLNmodels)
@@ -32,6 +33,9 @@ plot(network_models, "diagnostic")
 ## ----plot, fig.width=7, fig.height=5------------------------------------------
 plot(network_models)
 
+## ----plot-reverse, fig.width=7, fig.height=5----------------------------------
+plot(network_models, reverse = TRUE)
+
 ## ----path_coeff, fig.width=7, fig.height=7------------------------------------
 coefficient_path(network_models, corr = TRUE) %>% 
   ggplot(aes(x = Penalty, y = Coeff, group = Edge, colour = Edge)) + 
@@ -41,8 +45,12 @@ coefficient_path(network_models, corr = TRUE) %>%
 model_pen <- getModel(network_models, network_models$penalties[20]) # give some sparsity
 model_BIC <- getBestModel(network_models, "BIC")   # if no criteria is specified, the best BIC is used
 
+## ----future-------------------------------------------------------------------
+library(future)
+plan(multisession, workers = 2)
+
 ## ----extract models stars-----------------------------------------------------
-model_StARS <- getBestModel(network_models, "StARS") # if StARS is requested, stability selection is performed if needed 
+model_StARS <- getBestModel(network_models, "StARS")
 
 ## ----plot stability, fig.width=7, fig.height=5--------------------------------
 plot(network_models, "stability")

@@ -47,14 +47,23 @@ The list of parameters \code{control_main} controls the optimization of the main
 \item "maxtime" stop when the optimization time (in seconds) exceeds maxtime. Default is -1 (no restriction)
 \item "algorithm" the optimization method used by NLOPT among LD type, i.e. "CCSAQ", "MMA", "LBFGS",
 "VAR1", "VAR2". See NLOPT documentation for further details. Default is "CCSAQ".
-\item "trace" integer for verbosity. Useless when \code{cores} > 1
-\item "cores" The number of core used to parallelize jobs over the \code{ranks} vector. Default is 1.
+\item "trace" integer for verbosity.
 }
 }
 \examples{
+#' ## Use future to dispatch the computations on 2 workers
+\dontrun{
+future::plan("multisession", workers = 2)
+}
+
 data(trichoptera)
 trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 myPCA <- PLNPCA(Abundance ~ 1 + offset(log(Offset)), data = trichoptera, ranks = 1:5)
+
+# Shut down parallel workers
+\dontrun{
+future::plan("sequential")
+}
 }
 \seealso{
 The classes \code{\link{PLNPCAfamily}} and \code{\link{PLNPCAfit}}

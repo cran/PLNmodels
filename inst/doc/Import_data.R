@@ -36,6 +36,12 @@ compute_offset(trichoptera$Abundance, "GMPR")
 ## ----pseudocounts-------------------------------------------------------------
 compute_offset(trichoptera$Abundance, "RLE", pseudocounts = 1)
 
+## ----poscounts----------------------------------------------------------------
+compute_offset(trichoptera$Abundance, "RLE", type = "poscounts")
+
+## ----wrench-------------------------------------------------------------------
+compute_offset(trichoptera$Abundance, "Wrench")
+
 ## ----prepare_data_other_offset------------------------------------------------
 str(prepare_data(trichoptera$Abundance, 
              trichoptera$Covariate, 
