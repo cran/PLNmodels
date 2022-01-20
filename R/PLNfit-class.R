@@ -97,7 +97,7 @@ PLNfit <- R6Class(
         private$Theta <- do.call(rbind, lapply(LMs, coefficients))
         residuals     <- do.call(cbind, lapply(LMs, residuals))
         private$M     <- residuals
-        private$S2    <- matrix(0.1, n, ifelse(control$covariance == "spherical", 1, p))
+        private$S2    <- matrix(0.1,n,p)
         if (control$covariance == "spherical") {
           private$Sigma <- diag(sum(residuals^2)/(n*p), p, p)
         } else  if (control$covariance == "diagonal") {
@@ -173,8 +173,7 @@ PLNfit <- R6Class(
 
       ## Initialize the variational parameters with the appropriate new dimension of the data
       optim_out <- VEstep_optimizer(
-        list(M = matrix(0, n, p),
-             S = matrix(sqrt(0.1), n, ifelse(self$vcov_model == "spherical", 1, p))),
+        list(M = matrix(0, n, p), S = matrix(sqrt(0.1), n, p)),
         responses,
         covariates,
         offsets,
@@ -392,7 +391,7 @@ PLNfit <- R6Class(
     #' @field BIC variational lower bound of the BIC
     BIC        = function() {self$loglik - .5 * log(self$n) * self$nb_param},
     #' @field entropy Entropy of the variational distribution
-    entropy    = function() {.5 * (self$n * self$q * log(2*pi*exp(1)) + sum(log(private$S2)) * ifelse(private$covariance == "spherical", self$q, 1))},
+    entropy    = function() {.5 * (self$n * self$q * log(2*pi*exp(1)) + sum(log(private$S2)))},
     #' @field ICL variational lower bound of the ICL
     ICL        = function() {self$BIC - self$entropy},
     #' @field R_squared approximated goodness-of-fit criterion
@@ -406,5 +405,4 @@ PLNfit <- R6Class(
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 )
-
 

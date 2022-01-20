@@ -109,6 +109,83 @@ PLNPCAfit <- R6Class(
         )
       },
 
+      #' @description Result of one call to the VE step of the optimization procedure: optimal variational parameters (M, S) and corresponding log likelihood values for fixed model parameters (B, Theta). Intended to position new data in the latent space for further use with PCA.
+      #' @return A list with three components:
+      #'  * the matrix `M` of variational means,
+      #'  * the matrix `S2` of variational variances
+      #'  * the vector `log.lik` of (variational) log-likelihood of each new observation
+      VEstep = function(covariates, offsets, responses, weights = rep(1, nrow(responses)), control = list()) {
+
+        # problem dimension
+        n <- nrow(responses); p <- ncol(responses); d <- ncol(covariates); q <- self$rank
+
+        # turn offset vector to offset matrix
+        offsets <- as.matrix(offsets)
+        if (ncol(offsets) == 1) offsets <- matrix(offsets, nrow = n, ncol = p)
+
+        ## define default control parameters for optim and overwrite by user defined parameters
+        control$covariance <- self$vcov_model
+        control <- PLN_param(control, n, p)
+
+        VEstep_optimizer  <- cpp_optimize_vestep_rank
+
+        ## Not completely naive starting values for M: SVD on the residuals of
+        ## a linear regression on the log-counts (+1 to deal with 0s)
+        log_responses <- log(responses+1)
+        residuals <- lm.wfit(x = covariates, y = log_responses, w = weights, offset = offsets)$residuals
+        svd_residuals <- svd(residuals, nu = q, nv = p)
+        M_init <- svd_residuals$u[, 1:q, drop = FALSE] %*% diag(svd_residuals$d[1:q], nrow = q, ncol = q) %*% t(svd_residuals$v[1:q, 1:q, drop = FALSE])
+
+        ## Initialize the variational parameters with the appropriate new dimension of the data
+        optim_out <- VEstep_optimizer(
+          list(
+            ## M = matrix(0, n, q),
+            M = M_init,
+            S = matrix(sqrt(0.1), n, q)
+          ),
+          responses,
+          covariates,
+          offsets,
+          weights,
+          Theta = self$model_par$Theta,
+          B = self$model_par$B,
+          control
+        )
+
+        Ji <- optim_out$loglik
+        attr(Ji, "weights") <- weights
+
+        ## output
+        list(M       = optim_out$M,
+             S2      = (optim_out$S)**2,
+             log.lik = setNames(Ji, rownames(responses)))
+      },
+
+      #' @description Project new samples into the PCA space using one VE step
+      #' @param newdata A data frame in which to look for variables, offsets and counts  with which to predict.
+      #' @param control a list for controlling the optimization. See [PLN()] for details.
+      #' @param envir Environment in which the projection is evaluated
+      #' @return
+      #'  * the named matrix of scores for the newdata, expressed in the same coordinate system as `self$scores`
+      project = function(newdata, control = list(), envir = parent.frame()) {
+
+        ## Extract the model matrices from the new data set with initial formula
+        args <- extract_model(call("PLNPCA", formula = private$formula, data = newdata, xlev = private$xlevels), envir)
+
+        ## Compute latent positions of the new samples
+        M <- self$VEstep(covariates = args$X, offsets = args$O, responses = args$Y,
+                            weights = args$w, control = control)$M
+        latent_pos <- t(tcrossprod(self$model_par$B, M)) %>% scale(center = TRUE, scale = FALSE)
+
+        ## Compute scores in the PCA coordinate systems
+        scores <- latent_pos %*% self$rotation
+        dimnames(scores) <- list(rownames(newdata), paste0("PC", 1:ncol(scores)))
+
+        ## Output
+        scores
+      },
+
+
       ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ## Post treatment --------------------
       #' @description Compute PCA scores in the latent space and update corresponding fields.
@@ -120,7 +197,7 @@ PLNPCAfit <- R6Class(
       #' @description Update R2, fisher, std_err fields and set up visualization
       #' after optimization
       postTreatment = function(responses, covariates, offsets, weights, nullModel) {
-        super$postTreatment(responses, covariates, offsets, weights, nullModel = nullModel)
+        super$postTreatment(responses, covariates, offsets, weights, type = "none", nullModel = nullModel)
         colnames(private$B) <- colnames(private$M) <- 1:self$q
         rownames(private$B) <- colnames(responses)
         if (private$covariance != "spherical") colnames(private$S2) <- 1:self$q

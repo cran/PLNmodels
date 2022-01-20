@@ -10,9 +10,9 @@ knitr::opts_chunk$set(
 library(PLNmodels)
 library(factoextra)
 
-## ----future-------------------------------------------------------------------
-library(future)
-plan(multisession, workers = 2)
+## ----future, eval = FALSE-----------------------------------------------------
+#  library(future)
+#  plan(multisession, workers = 2)
 
 ## ----data_load----------------------------------------------------------------
 data(trichoptera)
@@ -22,7 +22,8 @@ trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 mixture_models <- PLNmixture(
   Abundance ~ 1 + offset(log(Offset)),
   data  = trichoptera,
-  clusters = 1:5
+  clusters = 1:5,
+  control_main = list(smoothing = "forward", iterates = 1)
 )
 
 ## ----show nocov---------------------------------------------------------------
@@ -96,4 +97,7 @@ predicted.position <- predict(myMix_BIC, newdata = trichoptera,
                               prior = myMix_BIC$posteriorProb, type = "position")
 prcomp(predicted.position) %>% 
   factoextra::fviz_pca_ind(col.ind = predicted.class)
+
+## ----future_off, eval = FALSE-------------------------------------------------
+#  future::plan("sequential")
 

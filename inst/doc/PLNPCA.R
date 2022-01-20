@@ -12,9 +12,9 @@ library(ggplot2)
 library(corrplot)
 library(factoextra)
 
-## ----future-------------------------------------------------------------------
-library(future)
-plan(multisession, workers = 2)
+## ----future, eval = FALSE-----------------------------------------------------
+#  library(future)
+#  plan(multisession, workers = 2)
 
 ## ----data_load----------------------------------------------------------------
 data(trichoptera)
@@ -24,7 +24,7 @@ trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 PCA_models <- PLNPCA(
   Abundance ~ 1 + offset(log(Offset)),
   data  = trichoptera, 
-  ranks = 1:5
+  ranks = 1:4
 )
 
 ## ----show nocov---------------------------------------------------------------
@@ -87,6 +87,14 @@ factoextra::fviz_pca_var(myPCA_ICL)
 ## ----fviz_principal_plane-----------------------------------------------------
 factoextra::fviz_pca_ind(myPCA_ICL)
 
+## -----------------------------------------------------------------------------
+## Project newdata into PCA space
+new_scores <- myPCA_ICL$project(newdata = trichoptera)
+## Overprint
+p <- factoextra::fviz_pca_ind(myPCA_ICL, geom = "point", col.ind = "black")
+factoextra::fviz_add(p, new_scores, geom = "point", color = "red", 
+                     addlabel = FALSE, pointsize = 0.5)
+
 ## ----cov----------------------------------------------------------------------
 PCA_models_cov <- 
   PLNPCA(
@@ -116,4 +124,7 @@ data.frame(
     scale_x_log10(limits = c(1,1000)) + 
     scale_y_log10(limits = c(1,1000)) + 
     theme_bw() + annotation_logticks()
+
+## ----future_off, eval = FALSE-------------------------------------------------
+#  future::plan("sequential")
 
