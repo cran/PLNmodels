@@ -1,3 +1,8 @@
+# PLNmodels 0.11.6
+
+* fix wrong use of all.equal
+* fix linking problem in new version of nloptr (>=2.0.0)
+
 # PLNmodels 0.11.5
 
 * fixing #79 by using the same variational distribution to approximate 
