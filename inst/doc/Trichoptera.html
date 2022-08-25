@@ -12,11 +12,23 @@
 
 <meta name="author" content="PLN team" />
 
-<meta name="date" content="2022-01-31" />
+<meta name="date" content="2022-08-25" />
 
 <title>Description of the Trichoptera data set</title>
 
-<script src="data:application/javascript;base64,Ly8gUGFuZG9jIDIuOSBhZGRzIGF0dHJpYnV0ZXMgb24gYm90aCBoZWFkZXIgYW5kIGRpdi4gV2UgcmVtb3ZlIHRoZSBmb3JtZXIgKHRvCi8vIGJlIGNvbXBhdGlibGUgd2l0aCB0aGUgYmVoYXZpb3Igb2YgUGFuZG9jIDwgMi44KS4KZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsIGZ1bmN0aW9uKGUpIHsKICB2YXIgaHMgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCJkaXYuc2VjdGlvbltjbGFzcyo9J2xldmVsJ10gPiA6Zmlyc3QtY2hpbGQiKTsKICB2YXIgaSwgaCwgYTsKICBmb3IgKGkgPSAwOyBpIDwgaHMubGVuZ3RoOyBpKyspIHsKICAgIGggPSBoc1tpXTsKICAgIGlmICghL15oWzEtNl0kL2kudGVzdChoLnRhZ05hbWUpKSBjb250aW51ZTsgIC8vIGl0IHNob3VsZCBiZSBhIGhlYWRlciBoMS1oNgogICAgYSA9IGguYXR0cmlidXRlczsKICAgIHdoaWxlIChhLmxlbmd0aCA+IDApIGgucmVtb3ZlQXR0cmlidXRlKGFbMF0ubmFtZSk7CiAgfQp9KTsK"></script>
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -26,6 +38,7 @@
   div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   ul.task-list{list-style: none;}
     </style>
+
 
 
 <style type="text/css">
@@ -109,13 +122,20 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   for (var i = 0; i < sheets.length; i++) {
     if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
     try { var rules = sheets[i].cssRules; } catch (e) { continue; }
-    for (var j = 0; j < rules.length; j++) {
+    var j = 0;
+    while (j < rules.length) {
       var rule = rules[j];
       // check if there is a div.sourceCode rule
-      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
       var style = rule.style.cssText;
       // check if color or background-color is set
-      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
       // replace div.sourceCode by a pre.sourceCode rule
       sheets[i].deleteRule(j);
       sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
@@ -149,7 +169,187 @@ div.csl-indent {
 }
 </style>
 
-<link rel="stylesheet" href="data:text/css,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" type="text/css" />
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
 
 
 
@@ -161,47 +361,71 @@ div.csl-indent {
 
 
 
-<h1 class="title toc-ignore">Description of the Trichoptera data set</h1>
+<h1 class="title toc-ignore">Description of the Trichoptera data
+set</h1>
 <h4 class="author">PLN team</h4>
-<h4 class="date">2022-01-31</h4>
+<h4 class="date">2022-08-25</h4>
 
 
 <div id="TOC">
 <ul>
-<li><a href="#preliminaries">Preliminaries</a></li>
-<li><a href="#the-trichoptera-data-set">The trichoptera data set</a>
+<li><a href="#preliminaries" id="toc-preliminaries">Preliminaries</a></li>
+<li><a href="#the-trichoptera-data-set" id="toc-the-trichoptera-data-set">The trichoptera data set</a>
 <ul>
-<li><a href="#formatting">Formatting</a></li>
-<li><a href="#table-of-counts-abundancies">Table of counts (abundancies)</a></li>
-<li><a href="#covariates-external-meteorological-effect-groups">Covariates (external meteorological effect, groups)</a></li>
-<li><a href="#offsets-and-the-compositionality-issue">Offsets and the compositionality issue</a></li>
+<li><a href="#formatting" id="toc-formatting">Formatting</a></li>
+<li><a href="#table-of-counts-abundancies" id="toc-table-of-counts-abundancies">Table of counts
+(abundancies)</a></li>
+<li><a href="#covariates-external-meteorological-effect-groups" id="toc-covariates-external-meteorological-effect-groups">Covariates
+(external meteorological effect, groups)</a></li>
+<li><a href="#offsets-and-the-compositionality-issue" id="toc-offsets-and-the-compositionality-issue">Offsets and the
+compositionality issue</a></li>
 </ul></li>
-<li><a href="#references">References</a></li>
+<li><a href="#references" id="toc-references">References</a></li>
 </ul>
 </div>
 
 <div id="preliminaries" class="section level2">
 <h2>Preliminaries</h2>
-<p>This vignette describes the data set <code>trichoptera</code>, which is used in all examples, tests and other vignettes of the package <strong>PLNmodels</strong>. This data set regroups the main striking characteristics of ecological count data (encompassing tables of abundances and covariates). The low dimensional space of the data also ensures that it is well suited for illustrative purposes.</p>
+<p>This vignette describes the data set <code>trichoptera</code>, which
+is used in all examples, tests and other vignettes of the package
+<strong>PLNmodels</strong>. This data set regroups the main striking
+characteristics of ecological count data (encompassing tables of
+abundances and covariates). The low dimensional space of the data also
+ensures that it is well suited for illustrative purposes.</p>
 <p>The packages required to run the vignette are the following:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(PLNmodels)</span></code></pre></div>
 </div>
 <div id="the-trichoptera-data-set" class="section level2">
 <h2>The trichoptera data set</h2>
-<p>The order Trichoptera (or caddisflies) are a group of insects with aquatic larvae and terrestrial adults. The ecological data set trichoptera <span class="citation">(<a href="#ref-trichoptera" role="doc-biblioref">Usseglio-Polatera and Auda 1987</a>)</span> describes abundances of Trichoptera species (hereafter the <em>counts</em>), accompanied with some meteorological factors (hereafter the <em>covariates</em>) that may influence their presence during the sampling<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>.</p>
+<p>The order Trichoptera (or caddisflies) are a group of insects with
+aquatic larvae and terrestrial adults. The ecological data set
+trichoptera <span class="citation">(<a href="#ref-trichoptera" role="doc-biblioref">Usseglio-Polatera and Auda 1987</a>)</span>
+describes abundances of Trichoptera species (hereafter the
+<em>counts</em>), accompanied with some meteorological factors
+(hereafter the <em>covariates</em>) that may influence their presence
+during the sampling<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>.</p>
 <div class="figure" style="text-align: center">
 <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAgEAUABQAAD/7QE0UGhvdG9zaG9wIDMuMAA4QklNA+0AAAAAABAAUAAAAAEAAgBQAAAAAQACOEJJTQPzAAAAAAAIAAAAAAAAAAA4QklNJxAAAAAAAAoAAQAAAAAAAAACOEJJTQP1AAAAAABIAC9mZgABAGxmZgAGAAAAAAABAC9mZgABAKGZmgAGAAAAAAABADIAAAABAFoAAAAGAAAAAAABADUAAAABAC0AAAAGAAAAAAABOEJJTQP4AAAAAABwAAD/////////////////////////////A+gAAAAA/////////////////////////////wPoAAAAAP////////////////////////////8D6AAAAAD/////////////////////////////A+gAADhCSU0EBgAAAAAAAgAC/+4ADkFkb2JlAGSAAAAAAf/bAIQADAgICAkIDAkJDBELCgsRFQ8MDA8VGBMTFRMTGBEMDAwMDAwRDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAENCwsNDg0QDg4QFA4ODhQUDg4ODhQRDAwMDAwREQwMDAwMDBEMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM/8AAEQgAYAC9AwEiAAIRAQMRAf/EAT8AAAEFAQEBAQEBAAAAAAAAAAMAAQIEBQYHCAkKCwEAAQUBAQEBAQEAAAAAAAAAAQACAwQFBgcICQoLEAABBAEDAgQCBQcGCAUDDDMBAAIRAwQhEjEFQVFhEyJxgTIGFJGhsUIjJBVSwWIzNHKC0UMHJZJT8OHxY3M1FqKygyZEk1RkRcKjdDYX0lXiZfKzhMPTdePzRieUpIW0lcTU5PSltcXV5fVWZnaGlqa2xtbm9jdHV2d3h5ent8fX5/cRAAICAQIEBAMEBQYHBwYFNQEAAhEDITESBEFRYXEiEwUygZEUobFCI8FS0fAzJGLhcoKSQ1MVY3M08SUGFqKygwcmNcLSRJNUoxdkRVU2dGXi8rOEw9N14/NGlKSFtJXE1OT0pbXF1eX1VmZ2hpamtsbW5vYnN0dXZ3eHl6e3x//dAAQADP/aAAwDAQACEQMRAD8A9VSSTEgCSYA5KSl0llZ/1o6F0/8ApGWzdxtZ7z/0JQ6/rR0+8NOOfVDuNQD92qZLLCO8gvGOZ2DspLn7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" alt="Macronema Zebratum captured by Y. Dubuc at Donacona (Québec), 06-20-2001." width="189" />
 <p class="caption">
-Macronema Zebratum captured by Y. Dubuc at Donacona (Québec), 06-20-2001.
+Macronema Zebratum captured by Y. Dubuc at Donacona (Québec),
+06-20-2001.
 </p>
 </div>
-<p>The data is directly available once <strong>PLNmodels</strong> is loaded. Comprehensive information and description are available to the user with <code>?PLNmodels::trichoptera</code>.</p>
+<p>The data is directly available once <strong>PLNmodels</strong> is
+loaded. Comprehensive information and description are available to the
+user with <code>?PLNmodels::trichoptera</code>.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(trichoptera)</span></code></pre></div>
 <div id="formatting" class="section level3">
 <h3>Formatting</h3>
-<p>Data are originally stored in a list of two data frames for abundances and covariates. We first prepare the data <a href="Import_data.html">see the corresponding vignette</a> for easy use in the multivariate framework of <strong>PLNmodels</strong>. Offsets are automatically computed:</p>
+<p>Data are originally stored in a list of two data frames for
+abundances and covariates. We first prepare the data <a href="Import_data.html">see the corresponding vignette</a> for easy use
+in the multivariate framework of <strong>PLNmodels</strong>. Offsets are
+automatically computed:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>trichoptera <span class="ot">&lt;-</span> <span class="fu">prepare_data</span>(trichoptera<span class="sc">$</span>Abundance, trichoptera<span class="sc">$</span>Covariate)</span></code></pre></div>
-<p>Data are now stored in the <code>trichoptera</code> data frame which includes 49 rows (the observations - or trapping nights) and 9 columns. As can be seen, there are 2 multivariate columns (matrices of counts and offsets) and 7 univariate columns (vectors of covariates):</p>
+<p>Data are now stored in the <code>trichoptera</code> data frame which
+includes 49 rows (the observations - or trapping nights) and 9 columns.
+As can be seen, there are 2 multivariate columns (matrices of counts and
+offsets) and 7 univariate columns (vectors of covariates):</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(trichoptera)</span></code></pre></div>
 <pre><code>## &#39;data.frame&#39;:    49 obs. of  9 variables:
 ##  $ Abundance    : num [1:49, 1:17] 0 0 0 0 0 0 0 0 0 0 ...
@@ -216,13 +440,38 @@ Macronema Zebratum captured by Y. Dubuc at Donacona (Québec), 06-20-2001.
 ##  $ Precipitation: num  0 0 0 0 0 0 1.6 0 1.6 0 ...
 ##  $ Group        : Factor w/ 12 levels &quot;1&quot;,&quot;2&quot;,&quot;3&quot;,&quot;4&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
 ##  $ Offset       : num  29 13 38 192 79 18 8 34 12 4 ...</code></pre>
-<p>We thus rely on a not so common use of the <code>data.frame</code> structure, where a column may be a matrix and not necessarily an atomic vector. This formatting is very handy for model specification with <code>R</code> <code>formulas</code>, especially in a multivariate setting like in <strong>PLNmodels</strong>.</p>
+<p>We thus rely on a not so common use of the <code>data.frame</code>
+structure, where a column may be a matrix and not necessarily an atomic
+vector. This formatting is very handy for model specification with
+<code>R</code> <code>formulas</code>, especially in a multivariate
+setting like in <strong>PLNmodels</strong>.</p>
 </div>
 <div id="table-of-counts-abundancies" class="section level3">
 <h3>Table of counts (abundancies)</h3>
-<p>The <code>Abundance</code> column is a <span class="math inline">\(49 \times 17\)</span> matrix of abundancies (or counts) for the 17 species found during the 49 trapping nights.</p>
+<p>The <code>Abundance</code> column is a <span class="math inline">\(49
+\times 17\)</span> matrix of abundancies (or counts) for the 17 species
+found during the 49 trapping nights.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>trichoptera<span class="sc">$</span>Abundance <span class="sc">%&gt;%</span> <span class="fu">head</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code></pre></div>
 <table>
+<colgroup>
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+</colgroup>
 <thead>
 <tr class="header">
 <th align="right">Che</th>
@@ -361,8 +610,12 @@ Macronema Zebratum captured by Y. Dubuc at Donacona (Québec), 06-20-2001.
 </tr>
 </tbody>
 </table>
-<p>In all other vignettes and journal papers associated with <strong>PLNmodels</strong>, the count table is denoted by <span class="math inline">\(\mathbf{Y}\)</span> in the mathematical model and <code>Y</code> in the <code>R</code> environment.</p>
-<p>A basic representation of the matrix of counts (here transposed and log-transformed), shows the typical huge dispersion between low and highly abundant species.</p>
+<p>In all other vignettes and journal papers associated with
+<strong>PLNmodels</strong>, the count table is denoted by <span class="math inline">\(\mathbf{Y}\)</span> in the mathematical model and
+<code>Y</code> in the <code>R</code> environment.</p>
+<p>A basic representation of the matrix of counts (here transposed and
+log-transformed), shows the typical huge dispersion between low and
+highly abundant species.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>corrplot<span class="sc">::</span><span class="fu">corrplot</span>(</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">t</span>(<span class="fu">log</span>(<span class="dv">1</span> <span class="sc">+</span> trichoptera<span class="sc">$</span>Abundance)),</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">is.corr =</span> <span class="cn">FALSE</span>,</span>
@@ -375,9 +628,23 @@ Macronema Zebratum captured by Y. Dubuc at Donacona (Québec), 06-20-2001.
 </div>
 <div id="covariates-external-meteorological-effect-groups" class="section level3">
 <h3>Covariates (external meteorological effect, groups)</h3>
-<p>Additional information was collected during the sampling, which corresponds to external covariates the effect of which may or may not be taken into account in the model (depending on the question at play). In the trichoptera data set, those covariates correspond to meteorological factors plus a categorical variable indicating the family of the caughts specimens.</p>
+<p>Additional information was collected during the sampling, which
+corresponds to external covariates the effect of which may or may not be
+taken into account in the model (depending on the question at play). In
+the trichoptera data set, those covariates correspond to meteorological
+factors plus a categorical variable indicating the family of the caughts
+specimens.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>dplyr<span class="sc">::</span><span class="fu">select</span>(trichoptera, <span class="sc">-</span>Offset, <span class="sc">-</span>Abundance) <span class="sc">%&gt;%</span> <span class="fu">head</span>() <span class="sc">%&gt;%</span> knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code></pre></div>
 <table>
+<colgroup>
+<col width="18%" />
+<col width="7%" />
+<col width="13%" />
+<col width="13%" />
+<col width="16%" />
+<col width="21%" />
+<col width="9%" />
+</colgroup>
 <thead>
 <tr class="header">
 <th align="right">Temperature</th>
@@ -446,7 +713,8 @@ Macronema Zebratum captured by Y. Dubuc at Donacona (Québec), 06-20-2001.
 </tr>
 </tbody>
 </table>
-<p>The design matrix arising from the covariates is denoted by <span class="math inline">\(\mathbf{X}\)</span> in our mathematical model and <code>X</code> within the <code>R</code> environment.</p>
+<p>The design matrix arising from the covariates is denoted by <span class="math inline">\(\mathbf{X}\)</span> in our mathematical model and
+<code>X</code> within the <code>R</code> environment.</p>
 <!-- A first glance at the pairs plot between the covariates shows no particular structure regarding the trichoptera groups. -->
 <!-- ```{r pairs, fig.dim = c(7, 7), fig.cap ="Pairs plot of the covariates in the trichoptera data set"} -->
 <!-- select(trichoptera, -Offset, -Abundance) %>%  -->
@@ -455,29 +723,53 @@ Macronema Zebratum captured by Y. Dubuc at Donacona (Québec), 06-20-2001.
 </div>
 <div id="offsets-and-the-compositionality-issue" class="section level3">
 <h3>Offsets and the compositionality issue</h3>
-<p>A common issue with (microbiological) ecological data is the compositionality problem: counts can only be compared to each other within a sample but not across samples as they depend on a sample-specific size-factor, which may induce spurious negative correlations of its own. Besides, the sampling of some particular species may be biased, for instance when different technologies are used to sample different types of species. Those technical biases can be encoded in a table of offsets. In the case at hand, we have a natural offset for each sample that corresponds to the total counts per night, specified by an <span class="math inline">\(49\)</span> numeric of offsets. Note that the offset term remains the same in a given sample albeit sometimes one might include an offset specific to both the sample and the species. The formula syntax accepts either no offset, a vector or a matrix or specify the offsets term.</p>
-<p>Here, we have a vector whose corresponding column is named <code>Offset</code> in in the <code>trichoptera</code> data frame:</p>
+<p>A common issue with (microbiological) ecological data is the
+compositionality problem: counts can only be compared to each other
+within a sample but not across samples as they depend on a
+sample-specific size-factor, which may induce spurious negative
+correlations of its own. Besides, the sampling of some particular
+species may be biased, for instance when different technologies are used
+to sample different types of species. Those technical biases can be
+encoded in a table of offsets. In the case at hand, we have a natural
+offset for each sample that corresponds to the total counts per night,
+specified by an <span class="math inline">\(49\)</span> numeric of
+offsets. Note that the offset term remains the same in a given sample
+albeit sometimes one might include an offset specific to both the sample
+and the species. The formula syntax accepts either no offset, a vector
+or a matrix or specify the offsets term.</p>
+<p>Here, we have a vector whose corresponding column is named
+<code>Offset</code> in in the <code>trichoptera</code> data frame:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>trichoptera<span class="sc">$</span>Offset</span></code></pre></div>
 <pre><code>##  [1]   29   13   38  192   79   18    8   34   12    4    4    3   49   33  600
 ## [16]  172   58   51   56  127   35   13   17    3   27   40   44    8    9 1599
 ## [31] 2980   88  135  327   66   90   63   15   14   20   70   53   95   43   62
 ## [46]  149   16   31   86</code></pre>
-<p><a href="Import_data.html">See the importation vignette</a> and the function <code>prepare_data()</code> to learn more about how Offset can be computed in <strong>PLNmodels</strong>.</p>
-<p>Offsets are denoted by <span class="math inline">\(\mathbf{O}\)</span> in the mathematical model across other vignettes, and by <code>O</code> in the <code>R</code> environment.</p>
+<p><a href="Import_data.html">See the importation vignette</a> and the
+function <code>prepare_data()</code> to learn more about how Offset can
+be computed in <strong>PLNmodels</strong>.</p>
+<p>Offsets are denoted by <span class="math inline">\(\mathbf{O}\)</span> in the mathematical model
+across other vignettes, and by <code>O</code> in the <code>R</code>
+environment.</p>
 </div>
 </div>
 <div id="references" class="section level2 unnumbered">
 <h2 class="unnumbered">References</h2>
 <div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-trichoptera" class="csl-entry">
-Usseglio-Polatera, P., and Y. Auda. 1987. <span>“Influence Des Facteurs Météorologiques Sur Les Résultats de Piégeage Lumineux.”</span> In <em>Annales de Limnologie-International Journal of Limnology</em>, 23:65–79. 1. EDP Sciences.
+Usseglio-Polatera, P., and Y. Auda. 1987. <span>“Influence Des Facteurs
+Météorologiques Sur Les Résultats de Piégeage Lumineux.”</span> In
+<em>Annales de Limnologie-International Journal of Limnology</em>,
+23:65–79. 1. EDP Sciences.
 </div>
 </div>
 </div>
-<div class="footnotes">
+<div class="footnotes footnotes-end-of-document">
 <hr />
 <ol>
-<li id="fn1"><p>The original data set is available in the <strong>ade4</strong> package. We consider here a different version where we only keep a subset of the original meteorological features, for illustrative purposes<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+<li id="fn1"><p>The original data set is available in the
+<strong>ade4</strong> package. We consider here a different version
+where we only keep a subset of the original meteorological features, for
+illustrative purposes<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
 </ol>
 </div>
 

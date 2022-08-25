@@ -9,9 +9,12 @@ super class for \code{\link{PLNPCAfamily}} and \code{\link{PLNnetworkfamily}}.
 \details{
 The parameter \code{control} is a list controlling the optimization with the following entries:
 \itemize{
-\item "covariance" character setting the model for the covariance matrix. Either "full", "diagonal" or "spherical". Default is "full".
+\item "covariance" character setting the model for the covariance matrix. Either "full", "diagonal", "spherical" or "genetic". Default is "full".
+\item "corr_matrix": a symmetric positive definite correlation matrix used for the "genetic" model of covariance. Useless in other cases
 \item "trace" integer for verbosity.
-\item "inception" Set up the initialization. By default, the model is initialized with a multivariate linear model applied on log-transformed data, and with the same formula as the one provided by the user. However, the user can provide a PLNfit (typically obtained from a previous fit), which sometimes speeds up the inference.
+\item "inception" Set up the initialization. By default, the model is initialized with a multivariate linear model applied on
+log-transformed data, and with the same formula as the one provided by the user. However, the user can provide a PLNfit (typically obtained from a previous fit),
+which sometimes speeds up the inference.
 \item "ftol_rel" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 1e-6 when n < p, 1e-8 otherwise.
 \item "ftol_abs" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 0
 \item "xtol_rel" stop when an optimization step changes every parameters by less than xtol multiplied by the absolute value of the parameter. Default is 1e-4
@@ -22,8 +25,6 @@ The parameter \code{control} is a list controlling the optimization with the fol
 }
 }
 \seealso{
-
-
 \code{\link[=getModel]{getModel()}}
 }
 \section{Public fields}{
@@ -56,18 +57,18 @@ BIC and ICL are defined so that they are on the same scale as the model log-like
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-new}{\code{PLNfamily$new()}}
-\item \href{#method-postTreatment}{\code{PLNfamily$postTreatment()}}
-\item \href{#method-getModel}{\code{PLNfamily$getModel()}}
-\item \href{#method-plot}{\code{PLNfamily$plot()}}
-\item \href{#method-show}{\code{PLNfamily$show()}}
-\item \href{#method-print}{\code{PLNfamily$print()}}
-\item \href{#method-clone}{\code{PLNfamily$clone()}}
+\item \href{#method-PLNfamily-new}{\code{PLNfamily$new()}}
+\item \href{#method-PLNfamily-postTreatment}{\code{PLNfamily$postTreatment()}}
+\item \href{#method-PLNfamily-getModel}{\code{PLNfamily$getModel()}}
+\item \href{#method-PLNfamily-plot}{\code{PLNfamily$plot()}}
+\item \href{#method-PLNfamily-show}{\code{PLNfamily$show()}}
+\item \href{#method-PLNfamily-print}{\code{PLNfamily$print()}}
+\item \href{#method-PLNfamily-clone}{\code{PLNfamily$clone()}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-new"></a>}}
-\if{latex}{\out{\hypertarget{method-new}{}}}
+\if{html}{\out{<a id="method-PLNfamily-new"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfamily-new}{}}}
 \subsection{Method \code{new()}}{
 Create a new \code{\link{PLNfamily}} object.
 \subsection{Usage}{
@@ -94,8 +95,8 @@ A new \code{\link{PLNfamily}} object
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-postTreatment"></a>}}
-\if{latex}{\out{\hypertarget{method-postTreatment}{}}}
+\if{html}{\out{<a id="method-PLNfamily-postTreatment"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfamily-postTreatment}{}}}
 \subsection{Method \code{postTreatment()}}{
 Update fields after optimization
 \subsection{Usage}{
@@ -104,8 +105,8 @@ Update fields after optimization
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-getModel"></a>}}
-\if{latex}{\out{\hypertarget{method-getModel}{}}}
+\if{html}{\out{<a id="method-PLNfamily-getModel"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfamily-getModel}{}}}
 \subsection{Method \code{getModel()}}{
 Extract a model from a collection of models
 \subsection{Usage}{
@@ -126,8 +127,8 @@ A \code{\link{PLNfit}} object
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-plot"></a>}}
-\if{latex}{\out{\hypertarget{method-plot}{}}}
+\if{html}{\out{<a id="method-PLNfamily-plot"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfamily-plot}{}}}
 \subsection{Method \code{plot()}}{
 Lineplot of selected criteria for all models in the collection
 \subsection{Usage}{
@@ -150,8 +151,8 @@ A \code{\link{ggplot2}} object
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-show"></a>}}
-\if{latex}{\out{\hypertarget{method-show}{}}}
+\if{html}{\out{<a id="method-PLNfamily-show"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfamily-show}{}}}
 \subsection{Method \code{show()}}{
 User friendly print method
 \subsection{Usage}{
@@ -160,8 +161,8 @@ User friendly print method
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-print"></a>}}
-\if{latex}{\out{\hypertarget{method-print}{}}}
+\if{html}{\out{<a id="method-PLNfamily-print"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfamily-print}{}}}
 \subsection{Method \code{print()}}{
 User friendly print method
 \subsection{Usage}{
@@ -170,8 +171,8 @@ User friendly print method
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-PLNfamily-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfamily-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{

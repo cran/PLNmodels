@@ -16,9 +16,12 @@ Fields are accessed via active binding and cannot be changed by the user.
 \details{
 The parameter \code{control} is a list controlling the optimization with the following entries:
 \itemize{
-\item "covariance" character setting the model for the covariance matrix. Either "full", "diagonal" or "spherical". Default is "full".
+\item "covariance" character setting the model for the covariance matrix. Either "full", "diagonal", "spherical" or "genetic". Default is "full".
+\item "corr_matrix": a symmetric positive definite correlation matrix used for the "genetic" model of covariance. Useless in other cases
 \item "trace" integer for verbosity.
-\item "inception" Set up the initialization. By default, the model is initialized with a multivariate linear model applied on log-transformed data, and with the same formula as the one provided by the user. However, the user can provide a PLNfit (typically obtained from a previous fit), which sometimes speeds up the inference.
+\item "inception" Set up the initialization. By default, the model is initialized with a multivariate linear model applied on
+log-transformed data, and with the same formula as the one provided by the user. However, the user can provide a PLNfit (typically obtained from a previous fit),
+which sometimes speeds up the inference.
 \item "ftol_rel" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 1e-6 when n < p, 1e-8 otherwise.
 \item "ftol_abs" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 0
 \item "xtol_rel" stop when an optimization step changes every parameters by less than xtol multiplied by the absolute value of the parameter. Default is 1e-4
@@ -56,6 +59,8 @@ print(myPLN)
 
 \item{\code{var_par}}{a list with two matrices, M and S2, which are the estimated parameters in the variational approximation}
 
+\item{\code{gen_par}}{a list with two parameters, sigma2 and rho, only used with the genetic covariance model}
+
 \item{\code{latent}}{a matrix: values of the latent vector (Z in the model)}
 
 \item{\code{latent_pos}}{a matrix: values of the latent position vector (Z) without covariates effects or offset}
@@ -89,23 +94,24 @@ print(myPLN)
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-update}{\code{PLNfit$update()}}
-\item \href{#method-new}{\code{PLNfit$new()}}
-\item \href{#method-optimize}{\code{PLNfit$optimize()}}
-\item \href{#method-VEstep}{\code{PLNfit$VEstep()}}
-\item \href{#method-set_R2}{\code{PLNfit$set_R2()}}
-\item \href{#method-compute_fisher}{\code{PLNfit$compute_fisher()}}
-\item \href{#method-compute_standard_error}{\code{PLNfit$compute_standard_error()}}
-\item \href{#method-postTreatment}{\code{PLNfit$postTreatment()}}
-\item \href{#method-predict}{\code{PLNfit$predict()}}
-\item \href{#method-show}{\code{PLNfit$show()}}
-\item \href{#method-print}{\code{PLNfit$print()}}
-\item \href{#method-clone}{\code{PLNfit$clone()}}
+\item \href{#method-PLNfit-update}{\code{PLNfit$update()}}
+\item \href{#method-PLNfit-new}{\code{PLNfit$new()}}
+\item \href{#method-PLNfit-optimize}{\code{PLNfit$optimize()}}
+\item \href{#method-PLNfit-VEstep}{\code{PLNfit$VEstep()}}
+\item \href{#method-PLNfit-set_R2}{\code{PLNfit$set_R2()}}
+\item \href{#method-PLNfit-compute_fisher}{\code{PLNfit$compute_fisher()}}
+\item \href{#method-PLNfit-compute_standard_error}{\code{PLNfit$compute_standard_error()}}
+\item \href{#method-PLNfit-postTreatment}{\code{PLNfit$postTreatment()}}
+\item \href{#method-PLNfit-predict}{\code{PLNfit$predict()}}
+\item \href{#method-PLNfit-predict_cond}{\code{PLNfit$predict_cond()}}
+\item \href{#method-PLNfit-show}{\code{PLNfit$show()}}
+\item \href{#method-PLNfit-print}{\code{PLNfit$print()}}
+\item \href{#method-PLNfit-clone}{\code{PLNfit$clone()}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-update"></a>}}
-\if{latex}{\out{\hypertarget{method-update}{}}}
+\if{html}{\out{<a id="method-PLNfit-update"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-update}{}}}
 \subsection{Method \code{update()}}{
 Update a \code{\link{PLNfit}} object
 \subsection{Usage}{
@@ -150,8 +156,8 @@ Update the current \code{\link{PLNfit}} object
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-new"></a>}}
-\if{latex}{\out{\hypertarget{method-new}{}}}
+\if{html}{\out{<a id="method-PLNfit-new"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-new}{}}}
 \subsection{Method \code{new()}}{
 Initialize a \code{\link{PLNfit}} model
 \subsection{Usage}{
@@ -179,8 +185,8 @@ Initialize a \code{\link{PLNfit}} model
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-optimize"></a>}}
-\if{latex}{\out{\hypertarget{method-optimize}{}}}
+\if{html}{\out{<a id="method-PLNfit-optimize"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-optimize}{}}}
 \subsection{Method \code{optimize()}}{
 Call to the C++ optimizer and update of the relevant fields
 \subsection{Usage}{
@@ -204,12 +210,20 @@ Call to the C++ optimizer and update of the relevant fields
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-VEstep"></a>}}
-\if{latex}{\out{\hypertarget{method-VEstep}{}}}
+\if{html}{\out{<a id="method-PLNfit-VEstep"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-VEstep}{}}}
 \subsection{Method \code{VEstep()}}{
 Result of one call to the VE step of the optimization procedure: optimal variational parameters (M, S) and corresponding log likelihood values for fixed model parameters (Sigma, Theta). Intended to position new data in the latent space.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNfit$VEstep(covariates, offsets, responses, weights, control = list())}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNfit$VEstep(
+  covariates,
+  offsets,
+  responses,
+  weights,
+  Theta = self$model_par$Theta,
+  Sigma = self$model_par$Sigma,
+  control = list()
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -222,6 +236,10 @@ Result of one call to the VE step of the optimization procedure: optimal variati
 \item{\code{responses}}{the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
+
+\item{\code{Theta}}{Optional fixed value of the regression parameters}
+
+\item{\code{Sigma}}{Optional fixed value of the covariance parameters.}
 
 \item{\code{control}}{a list for controlling the optimization. See details.}
 }
@@ -237,8 +255,8 @@ A list with three components:
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-set_R2"></a>}}
-\if{latex}{\out{\hypertarget{method-set_R2}{}}}
+\if{html}{\out{<a id="method-PLNfit-set_R2"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-set_R2}{}}}
 \subsection{Method \code{set_R2()}}{
 Update R2 field after optimization
 \subsection{Usage}{
@@ -262,8 +280,8 @@ Update R2 field after optimization
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-compute_fisher"></a>}}
-\if{latex}{\out{\hypertarget{method-compute_fisher}{}}}
+\if{html}{\out{<a id="method-PLNfit-compute_fisher"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-compute_fisher}{}}}
 \subsection{Method \code{compute_fisher()}}{
 Safely compute the fisher information matrix (FIM)
 \subsection{Usage}{
@@ -284,8 +302,8 @@ a sparse matrix with sensible dimension names
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-compute_standard_error"></a>}}
-\if{latex}{\out{\hypertarget{method-compute_standard_error}{}}}
+\if{html}{\out{<a id="method-PLNfit-compute_standard_error"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-compute_standard_error}{}}}
 \subsection{Method \code{compute_standard_error()}}{
 Compute univariate standard error for coefficients of Theta from the FIM
 \subsection{Usage}{
@@ -297,8 +315,8 @@ a matrix of standard deviations.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-postTreatment"></a>}}
-\if{latex}{\out{\hypertarget{method-postTreatment}{}}}
+\if{html}{\out{<a id="method-PLNfit-postTreatment"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-postTreatment}{}}}
 \subsection{Method \code{postTreatment()}}{
 Update R2, fisher and std_err fields after optimization
 \subsection{Usage}{
@@ -331,8 +349,8 @@ Update R2, fisher and std_err fields after optimization
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-predict"></a>}}
-\if{latex}{\out{\hypertarget{method-predict}{}}}
+\if{html}{\out{<a id="method-PLNfit-predict"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-predict}{}}}
 \subsection{Method \code{predict()}}{
 Predict position, scores or observations of new data.
 \subsection{Usage}{
@@ -355,8 +373,42 @@ A matrix with predictions scores or counts.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-show"></a>}}
-\if{latex}{\out{\hypertarget{method-show}{}}}
+\if{html}{\out{<a id="method-PLNfit-predict_cond"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-predict_cond}{}}}
+\subsection{Method \code{predict_cond()}}{
+Predict position, scores or observations of new data, conditionally on the observation of a (set of) variables
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PLNfit$predict_cond(
+  newdata,
+  cond_responses,
+  type = c("link", "response"),
+  var_par = FALSE,
+  envir = parent.frame()
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{newdata}}{a data frame containing the covariates of the sites where to predict}
+
+\item{\code{cond_responses}}{a data frame containing the count of the observed variables (matching the names of the provided as data in the PLN function)}
+
+\item{\code{type}}{Scale used for the prediction. Either \code{link} (default, predicted positions in the latent space) or \code{response} (predicted counts).}
+
+\item{\code{var_par}}{Boolean. Should new estimations of the variational parameters of mean and variance be sent back, as attributes of the matrix of predictions. Default to \code{FALSE}.}
+
+\item{\code{envir}}{Environment in which the prediction is evaluated}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A matrix with predictions scores or counts.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-PLNfit-show"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-show}{}}}
 \subsection{Method \code{show()}}{
 User friendly print method
 \subsection{Usage}{
@@ -375,8 +427,8 @@ User friendly print method
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-print"></a>}}
-\if{latex}{\out{\hypertarget{method-print}{}}}
+\if{html}{\out{<a id="method-PLNfit-print"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-print}{}}}
 \subsection{Method \code{print()}}{
 User friendly print method
 \subsection{Usage}{
@@ -385,8 +437,8 @@ User friendly print method
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-clone}{}}}
+\if{html}{\out{<a id="method-PLNfit-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{

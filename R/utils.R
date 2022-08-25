@@ -1,9 +1,13 @@
+trace <- function(x) sum(diag(x))
+
 .xlogx <- function(x) ifelse(x < .Machine$double.eps, 0, x*log(x))
 
 .softmax <- function(x) {
   b <- max(x)
   exp(x - b) / sum(exp(x - b))
 }
+
+.logit <- function (x) log(x/(1-x))
 
 .check_boundaries <- function(x, zero = .Machine$double.eps) {
   x[is.nan(x)] <- zero
@@ -48,16 +52,16 @@ fullModelPoisson <- function(responses, weights = rep(1, nrow(responses))) {
 #' @importFrom stats .getXlevels
 extract_model <- function(call, envir, xlev = NULL) {
 
-  ## create the call for the model frame
-  call_frame <- call[c(1L, match(c("formula", "data", "subset", "weights"), names(call), 0L))]
-  call_frame[[1]] <- quote(stats::model.frame)
+  ## extract relevant arguments from the high level call for the model frame
+  call_args <- call[match(c("formula", "data", "subset", "weights"), names(call), 0L)]
+  call_args <- c(as.list(call_args), list(xlev = xlev))
 
   ## eval the call in the parent environment
-  frame <- eval(call_frame, envir)
+  frame <- do.call(stats::model.frame, call_args, envir = envir)
   ## create the set of matrices to fit the PLN model
   Y <- frame[[1L]] ## model.response oversimplifies into a numeric when a single variable is involved
   if (ncol(Y) == 1 & is.null(colnames(Y))) colnames(Y) <- "Y"
-  X <- model.matrix(terms(frame), frame, xlev = xlev)
+  X <- model.matrix(terms(frame), frame)
   O <- model.offset(frame)
   if (is.null(O)) O <- matrix(0, nrow(Y), ncol(Y))
   if (is.vector(O)) O <- O %o% rep(1, ncol(Y))
@@ -158,6 +162,7 @@ PLN_param <- function(control, n, p) {
     "xtol_abs"    = xtol_abs,
     "trace"       = 1,
     "covariance"  = covariance,
+    "corr_matrix" = diag(x = 1, nrow = p, ncol = p),
     "inception"   = NULL
   )
   ctrl[names(control)] <- control
