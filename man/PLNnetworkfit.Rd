@@ -5,7 +5,6 @@
 \title{An R6 Class to represent a PLNfit in a sparse inverse covariance framework}
 \description{
 The function \code{\link[=PLNnetwork]{PLNnetwork()}} produces a collection of models which are instances of object with class \code{\link{PLNnetworkfit}}.
-
 This class comes with a set of methods, some of them being useful for the user:
 See the documentation for \code{\link[=plot.PLNnetworkfit]{plot()}} and methods inherited from \code{\link{PLNfit}}.
 }
@@ -22,21 +21,23 @@ print(myPLNnet)
 \seealso{
 The function \code{\link[=PLNnetwork]{PLNnetwork()}}, the class \code{\link{PLNnetworkfamily}}
 }
-\section{Super class}{
-\code{\link[PLNmodels:PLNfit]{PLNmodels::PLNfit}} -> \code{PLNnetworkfit}
+\section{Super classes}{
+\code{\link[PLNmodels:PLNfit]{PLNmodels::PLNfit}} -> \code{\link[PLNmodels:PLNfit_fixedcov]{PLNmodels::PLNfit_fixedcov}} -> \code{PLNnetworkfit}
 }
 \section{Active bindings}{
 \if{html}{\out{<div class="r6-active-bindings">}}
 \describe{
-\item{\code{penalty}}{the level of sparsity in the current model}
+\item{\code{vcov_model}}{character: the model used for the residual covariance}
+
+\item{\code{penalty}}{the global level of sparsity in the current model}
+
+\item{\code{penalty_weights}}{a matrix of weights controlling the amount of penalty element-wise.}
 
 \item{\code{n_edges}}{number of edges if the network (non null coefficient of the sparse precision matrix)}
 
 \item{\code{nb_param}}{number of parameters in the current PLN model}
 
 \item{\code{pen_loglik}}{variational lower bound of the l1-penalized loglikelihood}
-
-\item{\code{model_par}}{a list with the matrices associated with the estimated parameters of the pPCA model: Theta (covariates), Sigma (latent covariance) and Theta (latent precision matrix). Note Omega and Sigma are inverse of each other.}
 
 \item{\code{EBIC}}{variational lower bound of the EBIC}
 
@@ -53,7 +54,6 @@ and graph density}
 \item \href{#method-PLNnetworkfit-new}{\code{PLNnetworkfit$new()}}
 \item \href{#method-PLNnetworkfit-update}{\code{PLNnetworkfit$update()}}
 \item \href{#method-PLNnetworkfit-optimize}{\code{PLNnetworkfit$optimize()}}
-\item \href{#method-PLNnetworkfit-postTreatment}{\code{PLNnetworkfit$postTreatment()}}
 \item \href{#method-PLNnetworkfit-latent_network}{\code{PLNnetworkfit$latent_network()}}
 \item \href{#method-PLNnetworkfit-plot_network}{\code{PLNnetworkfit$plot_network()}}
 \item \href{#method-PLNnetworkfit-show}{\code{PLNnetworkfit$show()}}
@@ -61,15 +61,13 @@ and graph density}
 }
 }
 \if{html}{\out{
-<details><summary>Inherited methods</summary>
+<details open><summary>Inherited methods</summary>
 <ul>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="VEstep"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-VEstep'><code>PLNmodels::PLNfit$VEstep()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="compute_fisher"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-compute_fisher'><code>PLNmodels::PLNfit$compute_fisher()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="compute_standard_error"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-compute_standard_error'><code>PLNmodels::PLNfit$compute_standard_error()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="optimize_vestep"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-optimize_vestep'><code>PLNmodels::PLNfit$optimize_vestep()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="predict"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-predict'><code>PLNmodels::PLNfit$predict()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="predict_cond"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-predict_cond'><code>PLNmodels::PLNfit$predict_cond()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="print"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-print'><code>PLNmodels::PLNfit$print()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="set_R2"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-set_R2'><code>PLNmodels::PLNfit$set_R2()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit_fixedcov" data-id="postTreatment"><a href='../../PLNmodels/html/PLNfit_fixedcov.html#method-PLNfit_fixedcov-postTreatment'><code>PLNmodels::PLNfit_fixedcov$postTreatment()</code></a></span></li>
 </ul>
 </details>
 }}
@@ -81,12 +79,12 @@ Initialize a \code{\link{PLNnetworkfit}} object
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfit$new(
   penalty,
+  penalty_weights,
   responses,
   covariates,
   offsets,
   weights,
   formula,
-  xlevels,
   control
 )}\if{html}{\out{</div>}}
 }
@@ -96,19 +94,19 @@ Initialize a \code{\link{PLNnetworkfit}} object
 \describe{
 \item{\code{penalty}}{a positive real number controlling the level of sparsity of the underlying network.}
 
-\item{\code{responses}}{the matrix of responses common to every models}
+\item{\code{penalty_weights}}{either a single or a list of p x p matrix of weights (default filled with 1) to adapt the amount of shrinkage to each pairs of node. Must be symmetric with positive values.}
 
-\item{\code{covariates}}{the matrix of covariates common to every models}
+\item{\code{responses}}{the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
 
-\item{\code{offsets}}{the matrix of offsets common to every models}
+\item{\code{covariates}}{design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
+
+\item{\code{offsets}}{offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
 
 \item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
 
-\item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in \code{\link[=PLNnetwork]{PLNnetwork()}} call}
-
-\item{\code{control}}{a list for controlling the optimization of the PLN model used at initialization. See \code{\link[=PLNnetwork]{PLNnetwork()}} for details.}
+\item{\code{control}}{a list for controlling the optimization.}
 }
 \if{html}{\out{</div>}}
 }
@@ -121,11 +119,11 @@ Update fields of a \code{\link{PLNnetworkfit}} object
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfit$update(
   penalty = NA,
-  Theta = NA,
+  B = NA,
   Sigma = NA,
   Omega = NA,
   M = NA,
-  S2 = NA,
+  S = NA,
   Z = NA,
   A = NA,
   Ji = NA,
@@ -139,7 +137,7 @@ Update fields of a \code{\link{PLNnetworkfit}} object
 \describe{
 \item{\code{penalty}}{a positive real number controlling the level of sparsity of the underlying network.}
 
-\item{\code{Theta}}{matrix of regression matrix}
+\item{\code{B}}{matrix of regression matrix}
 
 \item{\code{Sigma}}{variance-covariance matrix of the latent variables}
 
@@ -147,7 +145,7 @@ Update fields of a \code{\link{PLNnetworkfit}} object
 
 \item{\code{M}}{matrix of mean vectors for the variational approximation}
 
-\item{\code{S2}}{matrix of variance vectors for the variational approximation}
+\item{\code{S}}{matrix of variance vectors for the variational approximation}
 
 \item{\code{Z}}{matrix of latent vectors (includes covariates and offset effects)}
 
@@ -168,46 +166,21 @@ Update fields of a \code{\link{PLNnetworkfit}} object
 \subsection{Method \code{optimize()}}{
 Call to the C++ optimizer and update of the relevant fields
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfit$optimize(responses, covariates, offsets, weights, control)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfit$optimize(responses, covariates, offsets, weights, config)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{responses}}{the matrix of responses common to every models}
+\item{\code{responses}}{the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
 
-\item{\code{covariates}}{the matrix of covariates common to every models}
+\item{\code{covariates}}{design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
 
-\item{\code{offsets}}{the matrix of offsets common to every models}
-
-\item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
-
-\item{\code{control}}{a list for controlling the optimization of the PLN model used at initialization. See \code{\link[=PLNnetwork]{PLNnetwork()}} for details.}
-}
-\if{html}{\out{</div>}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-PLNnetworkfit-postTreatment"></a>}}
-\if{latex}{\out{\hypertarget{method-PLNnetworkfit-postTreatment}{}}}
-\subsection{Method \code{postTreatment()}}{
-Compute PCA scores in the latent space and update corresponding fields.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfit$postTreatment(responses, covariates, offsets, weights, nullModel)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{responses}}{the matrix of responses common to every models}
-
-\item{\code{covariates}}{the matrix of covariates common to every models}
-
-\item{\code{offsets}}{the matrix of offsets common to every models}
+\item{\code{offsets}}{offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
 
-\item{\code{nullModel}}{null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.}
+\item{\code{config}}{a list for controlling the optimization}
 }
 \if{html}{\out{</div>}}
 }

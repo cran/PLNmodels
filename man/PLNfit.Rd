@@ -8,28 +8,9 @@ The function \code{\link[=PLN]{PLN()}} fit a model which is an instance of a obj
 Objects produced by the functions \code{\link[=PLNnetwork]{PLNnetwork()}}, \code{\link[=PLNPCA]{PLNPCA()}}, \code{\link[=PLNmixture]{PLNmixture()}} and \code{\link[=PLNLDA]{PLNLDA()}} also enjoy the methods of \code{\link[=PLNfit]{PLNfit()}} by inheritance.
 
 This class comes with a set of R6 methods, some of them being useful for the user and exported as S3 methods.
-See the documentation for \code{\link[=coef]{coef()}}, \code{\link[=sigma]{sigma()}},
-\code{\link[=predict]{predict()}}, \code{\link[=vcov]{vcov()}} and \code{\link[=standard_error]{standard_error()}}.
+See the documentation for \code{\link[=coef]{coef()}}, \code{\link[=sigma]{sigma()}}, \code{\link[=predict]{predict()}}, \code{\link[=vcov]{vcov()}} and \code{\link[=standard_error]{standard_error()}}.
 
 Fields are accessed via active binding and cannot be changed by the user.
-}
-\details{
-The parameter \code{control} is a list controlling the optimization with the following entries:
-\itemize{
-\item "covariance" character setting the model for the covariance matrix. Either "full", "diagonal", "spherical" or "genetic". Default is "full".
-\item "corr_matrix": a symmetric positive definite correlation matrix used for the "genetic" model of covariance. Useless in other cases
-\item "trace" integer for verbosity.
-\item "inception" Set up the initialization. By default, the model is initialized with a multivariate linear model applied on
-log-transformed data, and with the same formula as the one provided by the user. However, the user can provide a PLNfit (typically obtained from a previous fit),
-which sometimes speeds up the inference.
-\item "ftol_rel" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 1e-6 when n < p, 1e-8 otherwise.
-\item "ftol_abs" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 0
-\item "xtol_rel" stop when an optimization step changes every parameters by less than xtol multiplied by the absolute value of the parameter. Default is 1e-4
-\item "xtol_abs" stop when an optimization step changes every parameters by less than xtol multiplied by the absolute value of the parameter. Default is 0
-\item "maxeval" stop when the number of iteration exceeds maxeval. Default is 10000
-\item "maxtime" stop when the optimization time (in seconds) exceeds maxtime. Default is -1 (no restriction)
-\item "algorithm" the optimization method used by NLOPT among LD type, i.e. "CCSAQ", "MMA", "LBFGS", "VAR1", "VAR2". See NLOPT documentation for further details. Default is "CCSAQ".
-}
 }
 \examples{
 \dontrun{
@@ -51,15 +32,13 @@ print(myPLN)
 
 \item{\code{d}}{number of covariates}
 
-\item{\code{model_par}}{a list with the matrices of parameters found in the model (Theta, Sigma, plus some others depending on the variant)}
+\item{\code{nb_param}}{number of parameters in the current PLN model}
 
-\item{\code{fisher}}{Variational approximation of the Fisher Information matrix}
+\item{\code{model_par}}{a list with the matrices of the model parameters: B (covariates), Sigma (covariance), Omega (precision matrix), plus some others depending on the variant)}
 
-\item{\code{std_err}}{Variational approximation of the variance-covariance matrix of model parameters estimates.}
+\item{\code{var_par}}{a list with the matrices of the variational parameters: M (means) and S2 (variances)}
 
-\item{\code{var_par}}{a list with two matrices, M and S2, which are the estimated parameters in the variational approximation}
-
-\item{\code{gen_par}}{a list with two parameters, sigma2 and rho, only used with the genetic covariance model}
+\item{\code{optim_par}}{a list with parameters useful for monitoring the optimization}
 
 \item{\code{latent}}{a matrix: values of the latent vector (Z in the model)}
 
@@ -67,11 +46,9 @@ print(myPLN)
 
 \item{\code{fitted}}{a matrix: fitted values of the observations (A in the model)}
 
-\item{\code{nb_param}}{number of parameters in the current PLN model}
+\item{\code{vcov_coef}}{matrix of sandwich estimator of the variance-covariance of B (need fixed -ie known- covariance at the moment)}
 
-\item{\code{vcov_model}}{character: the model used for the covariance (either "spherical", "diagonal" or "full")}
-
-\item{\code{optim_par}}{a list with parameters useful for monitoring the optimization}
+\item{\code{vcov_model}}{character: the model used for the residual covariance}
 
 \item{\code{weights}}{observational weights}
 
@@ -94,13 +71,10 @@ print(myPLN)
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-PLNfit-update}{\code{PLNfit$update()}}
 \item \href{#method-PLNfit-new}{\code{PLNfit$new()}}
+\item \href{#method-PLNfit-update}{\code{PLNfit$update()}}
 \item \href{#method-PLNfit-optimize}{\code{PLNfit$optimize()}}
-\item \href{#method-PLNfit-VEstep}{\code{PLNfit$VEstep()}}
-\item \href{#method-PLNfit-set_R2}{\code{PLNfit$set_R2()}}
-\item \href{#method-PLNfit-compute_fisher}{\code{PLNfit$compute_fisher()}}
-\item \href{#method-PLNfit-compute_standard_error}{\code{PLNfit$compute_standard_error()}}
+\item \href{#method-PLNfit-optimize_vestep}{\code{PLNfit$optimize_vestep()}}
 \item \href{#method-PLNfit-postTreatment}{\code{PLNfit$postTreatment()}}
 \item \href{#method-PLNfit-predict}{\code{PLNfit$predict()}}
 \item \href{#method-PLNfit-predict_cond}{\code{PLNfit$predict_cond()}}
@@ -110,16 +84,44 @@ print(myPLN)
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-PLNfit-new"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-new}{}}}
+\subsection{Method \code{new()}}{
+Initialize a \code{\link{PLNfit}} model
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{PLNfit$new(responses, covariates, offsets, weights, formula, control)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{responses}}{the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
+
+\item{\code{covariates}}{design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
+
+\item{\code{offsets}}{offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
+
+\item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
+
+\item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
+
+\item{\code{control}}{a list-like structure for controlling the fit, see \code{\link[=PLN_param]{PLN_param()}}.}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-PLNfit-update"></a>}}
 \if{latex}{\out{\hypertarget{method-PLNfit-update}{}}}
 \subsection{Method \code{update()}}{
 Update a \code{\link{PLNfit}} object
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{PLNfit$update(
-  Theta = NA,
+  B = NA,
   Sigma = NA,
+  Omega = NA,
   M = NA,
-  S2 = NA,
+  S = NA,
   Ji = NA,
   R2 = NA,
   Z = NA,
@@ -131,13 +133,15 @@ Update a \code{\link{PLNfit}} object
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{Theta}}{matrix of regression matrix}
+\item{\code{B}}{matrix of regression matrix}
 
 \item{\code{Sigma}}{variance-covariance matrix of the latent variables}
 
-\item{\code{M}}{matrix of mean vectors for the variational approximation}
+\item{\code{Omega}}{precision matrix of the latent variables. Inverse of Sigma.}
 
-\item{\code{S2}}{matrix of variance vectors for the variational approximation}
+\item{\code{M}}{matrix of variational parameters for the mean}
+
+\item{\code{S}}{matrix of variational parameters for the variance}
 
 \item{\code{Ji}}{vector of variational lower bounds of the log-likelihoods (one value per sample)}
 
@@ -156,41 +160,12 @@ Update the current \code{\link{PLNfit}} object
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-PLNfit-new"></a>}}
-\if{latex}{\out{\hypertarget{method-PLNfit-new}{}}}
-\subsection{Method \code{new()}}{
-Initialize a \code{\link{PLNfit}} model
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNfit$new(responses, covariates, offsets, weights, formula, xlevels, control)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{responses}}{the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
-
-\item{\code{covariates}}{design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
-
-\item{\code{offsets}}{offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
-
-\item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
-
-\item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
-
-\item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.}
-
-\item{\code{control}}{a list for controlling the optimization. See details.}
-}
-\if{html}{\out{</div>}}
-}
-}
-\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-PLNfit-optimize"></a>}}
 \if{latex}{\out{\hypertarget{method-PLNfit-optimize}{}}}
 \subsection{Method \code{optimize()}}{
-Call to the C++ optimizer and update of the relevant fields
+Call to the NLopt or TORCH optimizer and update of the relevant fields
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNfit$optimize(responses, covariates, offsets, weights, control)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNfit$optimize(responses, covariates, offsets, weights, config)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -204,25 +179,25 @@ Call to the C++ optimizer and update of the relevant fields
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
 
-\item{\code{control}}{a list for controlling the optimization. See details.}
+\item{\code{config}}{part of the \code{control} argument which configures the optimizer}
 }
 \if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-PLNfit-VEstep"></a>}}
-\if{latex}{\out{\hypertarget{method-PLNfit-VEstep}{}}}
-\subsection{Method \code{VEstep()}}{
-Result of one call to the VE step of the optimization procedure: optimal variational parameters (M, S) and corresponding log likelihood values for fixed model parameters (Sigma, Theta). Intended to position new data in the latent space.
+\if{html}{\out{<a id="method-PLNfit-optimize_vestep"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNfit-optimize_vestep}{}}}
+\subsection{Method \code{optimize_vestep()}}{
+Result of one call to the VE step of the optimization procedure: optimal variational parameters (M, S) and corresponding log likelihood values for fixed model parameters (Sigma, B). Intended to position new data in the latent space.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNfit$VEstep(
+\if{html}{\out{<div class="r">}}\preformatted{PLNfit$optimize_vestep(
   covariates,
   offsets,
   responses,
   weights,
-  Theta = self$model_par$Theta,
-  Sigma = self$model_par$Sigma,
-  control = list()
+  B = self$model_par$B,
+  Omega = self$model_par$Omega,
+  control = PLN_param(backend = "nlopt")
 )}\if{html}{\out{</div>}}
 }
 
@@ -237,11 +212,13 @@ Result of one call to the VE step of the optimization procedure: optimal variati
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
 
-\item{\code{Theta}}{Optional fixed value of the regression parameters}
+\item{\code{B}}{Optional fixed value of the regression parameters}
 
-\item{\code{Sigma}}{Optional fixed value of the covariance parameters.}
+\item{\code{Omega}}{precision matrix of the latent variables. Inverse of Sigma.}
 
-\item{\code{control}}{a list for controlling the optimization. See details.}
+\item{\code{control}}{a list-like structure for controlling the fit, see \code{\link[=PLN_param]{PLN_param()}}.}
+
+\item{\code{Sigma}}{variance-covariance matrix of the latent variables}
 }
 \if{html}{\out{</div>}}
 }
@@ -255,66 +232,6 @@ A list with three components:
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-PLNfit-set_R2"></a>}}
-\if{latex}{\out{\hypertarget{method-PLNfit-set_R2}{}}}
-\subsection{Method \code{set_R2()}}{
-Update R2 field after optimization
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNfit$set_R2(responses, covariates, offsets, weights, nullModel = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{responses}}{the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
-
-\item{\code{covariates}}{design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
-
-\item{\code{offsets}}{offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
-
-\item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
-
-\item{\code{nullModel}}{null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.}
-}
-\if{html}{\out{</div>}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-PLNfit-compute_fisher"></a>}}
-\if{latex}{\out{\hypertarget{method-PLNfit-compute_fisher}{}}}
-\subsection{Method \code{compute_fisher()}}{
-Safely compute the fisher information matrix (FIM)
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNfit$compute_fisher(type = c("wald", "louis"), X = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{type}}{approximation scheme to compute the fisher information matrix. Either \code{wald} (default) or \code{louis}. \code{type = "louis"} results in smaller confidence intervals.}
-
-\item{\code{X}}{design matrix used to compute the FIM}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-a sparse matrix with sensible dimension names
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-PLNfit-compute_standard_error"></a>}}
-\if{latex}{\out{\hypertarget{method-PLNfit-compute_standard_error}{}}}
-\subsection{Method \code{compute_standard_error()}}{
-Compute univariate standard error for coefficients of Theta from the FIM
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNfit$compute_standard_error()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-a matrix of standard deviations.
-}
-}
-\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-PLNfit-postTreatment"></a>}}
 \if{latex}{\out{\hypertarget{method-PLNfit-postTreatment}{}}}
 \subsection{Method \code{postTreatment()}}{
@@ -325,7 +242,7 @@ Update R2, fisher and std_err fields after optimization
   covariates,
   offsets,
   weights = rep(1, nrow(responses)),
-  type = c("wald", "louis", "none"),
+  config,
   nullModel = NULL
 )}\if{html}{\out{</div>}}
 }
@@ -341,9 +258,11 @@ Update R2, fisher and std_err fields after optimization
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
 
-\item{\code{type}}{approximation scheme to compute the fisher information matrix. Either \code{wald} (default) or \code{louis}. \code{type = "louis"} results in smaller confidence intervals.}
+\item{\code{config}}{part of the \code{control} argument which configures the optimizer}
 
 \item{\code{nullModel}}{null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.}
+
+\item{\code{jackknife}}{Boolean indicating whether jackknife estimation of bias and variance should be computed for the model parameters. Default is \code{FALSE}}
 }
 \if{html}{\out{</div>}}
 }
@@ -413,7 +332,7 @@ A matrix with predictions scores or counts.
 User friendly print method
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{PLNfit$show(
-  model = paste("A multivariate Poisson Lognormal fit with", private$covariance,
+  model = paste("A multivariate Poisson Lognormal fit with", self$vcov_model,
     "covariance model.\\n")
 )}\if{html}{\out{</div>}}
 }

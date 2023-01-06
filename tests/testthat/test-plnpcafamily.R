@@ -9,7 +9,7 @@ test_that("PLNPCAfamily: main function, field access and methods", {
   # output <- "\n Initialization...\n\n Adjusting 5 PLN models for PCA analysis.\n Rank approximation = 1\n\t conservative convex separable approximation for gradient descent Rank approximation = 2\n\t conservative convex separable approximation for gradient descent Rank approximation = 3\n\t conservative convex separable approximation for gradient descent Rank approximation = 4\n\t conservative convex separable approximation for gradient descent Rank approximation = 5\n\t conservative convex separable approximation for gradient descent\n Post-treatments\n DONE!"
   #
   models <- PLNPCA(Abundance ~ 1, data = trichoptera,
-                                  ranks = 1:5, control_main = list(trace = 0))
+                                  ranks = 1:5, control = PLNPCA_param(trace = 0))
 
   expect_is(models, "PLNPCAfamily")
   expect_is(plot(models), "ggplot")
@@ -23,20 +23,18 @@ test_that("PLNPCAfamily: main function, field access and methods", {
   Y <- as.matrix(trichoptera$Abundance)
   O <- matrix(0, nrow = nrow(Y), ncol = ncol(Y))
   w <- rep(1, nrow(Y))
-  xlevels <- NULL
 
   ## extract the data matrices and weights
-  ctrl_init <- PLNmodels:::PLN_param(list(), nrow(Y), ncol(Y))
-  ctrl_main <- PLNmodels:::PLNPCA_param(list())
+  ctrl <-PLNPCA_param()
 
   ## instantiate
-  myPLN <- PLNmodels:::PLNPCAfamily$new(1:5, Y, X, O, w, Abundance ~ 1, xlevels, ctrl_init)
+  myPLN <- PLNmodels:::PLNPCAfamily$new(1:5, Y, X, O, w, Abundance ~ 1, ctrl)
 
   ## optimize
-  myPLN$optimize(ctrl_main)
+  myPLN$optimize(ctrl$config_optim)
 
   ## post-treatment
-  myPLN$postTreatment()
+  myPLN$postTreatment(ctrl$config_post)
 
   ## S3 methods
   expect_true(PLNmodels:::isPLNPCAfamily(myPLN))

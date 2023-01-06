@@ -12,7 +12,6 @@
 #' @param clusters the dimensions of the successively fitted models
 #' @param formula model formula used for fitting, extracted from the formula in the upper-level call
 #' @param control a list for controlling the optimization. See details.
-#' @param xlevels named listed of factor levels included in the models, extracted from the formula in the upper-level call #'
 #' @include PLNfamily-class.R
 #' @importFrom R6 R6Class
 #' @importFrom purrr map map_dbl map_int
@@ -27,13 +26,12 @@ PLNmixturefamily <-
     ),
     private = list(
       formula = NULL,
-      xlevels = NULL,
 
       smooth_forward = function(control) {
 
         trace <- control$trace > 0; control$trace <- FALSE
-        control_fast <- control
-        control_fast$maxit_out <- 2
+        config_fast <- control$config_optim
+        config_fast$maxit_out <- 2
 
         if (trace) cat("   Going forward ")
         for (k in self$clusters[-length(self$clusters)]) {
@@ -57,13 +55,13 @@ PLNmixturefamily <-
           }) %>% map(as_indicator)
 
           loglik_candidates <- future.apply::future_lapply(tau_candidates, function(tau_) {
-            model <- PLNmixturefit$new(self$responses, self$covariates, self$offsets, tau_, private$formula, private$xlevels, control_fast)
-            model$optimize(self$responses, self$covariates, self$offsets, control_fast)
+            model <- PLNmixturefit$new(self$responses, self$covariates, self$offsets, tau_, private$formula, control)
+            model$optimize(self$responses, self$covariates, self$offsets, config_fast)
             model$loglik
           }, future.seed = TRUE, future.scheduling = structure(TRUE, ordering = "random")) %>% unlist()
 
-          best_one <- PLNmixturefit$new(self$responses, self$covariates, self$offsets, tau_candidates[[which.max(loglik_candidates)]], private$formula, private$xlevels, control)
-          best_one$optimize(self$responses, self$covariates, self$offsets, control)
+          best_one <- PLNmixturefit$new(self$responses, self$covariates, self$offsets, tau_candidates[[which.max(loglik_candidates)]], private$formula, control)
+          best_one$optimize(self$responses, self$covariates, self$offsets, control$config_optim)
 
           if (best_one$loglik > self$models[[k + 1]]$loglik) {
             self$models[[k + 1]] <- best_one
@@ -75,8 +73,8 @@ PLNmixturefamily <-
       },
       smooth_backward = function(control) {
         trace <- control$trace > 0; control$trace <- FALSE
-        control_fast <- control
-        control_fast$maxit_out <- 2
+        config_fast <- control$config_optim
+        config_fast$maxit_out <- 2
         if (trace) cat("   Going backward ")
         for (k in rev(self$clusters[-1])) {
           if (trace) cat('+')
@@ -90,13 +88,13 @@ PLNmixturefamily <-
           })
 
           loglik_candidates <- future.apply::future_lapply(tau_candidates, function(tau_) {
-            model <- PLNmixturefit$new(self$responses, self$covariates, self$offsets, tau_, private$formula, private$xlevels, control_fast)
-            model$optimize(self$responses, self$covariates, self$offsets, control_fast)
+            model <- PLNmixturefit$new(self$responses, self$covariates, self$offsets, tau_, private$formula, control)
+            model$optimize(self$responses, self$covariates, self$offsets, config_fast)
             model$loglik
           }, future.seed = TRUE, future.scheduling = structure(TRUE, ordering = "random")) %>% unlist()
 
-          best_one <- PLNmixturefit$new(self$responses, self$covariates, self$offsets, tau_candidates[[which.max(loglik_candidates)]], private$formula, private$xlevels, control)
-          best_one$optimize(self$responses, self$covariates, self$offsets, control)
+          best_one <- PLNmixturefit$new(self$responses, self$covariates, self$offsets, tau_candidates[[which.max(loglik_candidates)]], private$formula, control)
+          best_one$optimize(self$responses, self$covariates, self$offsets, control$config_optim)
 
           if (best_one$loglik > self$models[[k - 1]]$loglik) {
               self$models[[k - 1]] <- best_one
@@ -115,23 +113,21 @@ PLNmixturefamily <-
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Creation -----------------------
     #' @description Initialize all models in the collection.
-      initialize = function(clusters, responses, covariates, offsets, formula, xlevels, control) {
+      initialize = function(clusters, responses, covariates, offsets, formula, control) {
 
         ## initialize the required fields
         super$initialize(responses, covariates, offsets, rep(1, nrow(responses)), control)
         private$params  <- clusters
         private$formula <- formula
-        private$xlevels <- xlevels
 
-        myPLN <- PLNfit$new(responses, covariates, offsets, rep(1, nrow(responses)), formula, xlevels, control)
-        myPLN$optimize(responses, covariates, offsets, rep(1, nrow(responses)), control)
-
-        Sbar <- rowSums(myPLN$var_par$S2)
-        D <- sqrt(as.matrix(dist(myPLN$var_par$M)^2) + outer(Sbar,rep(1,myPLN$n)) + outer(rep(1, myPLN$n), Sbar))
-
-        if (is.numeric(control$init_cl)) {
+        ## Default clustering is obtained by performing kmeans or CAH on the variational parameters of the means of a fully parametrized PLN
+        if (is.numeric(control$config_optim$init_cl)) {
           clusterings <- control$init_cl
         } else if (is.character(control$init_cl)) {
+          myPLN <- PLNfit$new(responses, covariates, offsets, rep(1, nrow(responses)), formula, control)
+          myPLN$optimize(responses, covariates, offsets, rep(1, nrow(responses)), control$config_optim)
+          Sbar <- rowSums(myPLN$var_par$S2)
+          D <- sqrt(as.matrix(dist(myPLN$var_par$M)^2) + outer(Sbar,rep(1,myPLN$n)) + outer(rep(1, myPLN$n), Sbar))
           clusterings <-switch(control$init_cl,
             "kmeans"  = lapply(clusters, function(k) kmeans(D, centers = k, nstart = 30)$cl),
             "ward.D2" = D %>% as.dist() %>% hclust(method = "ward.D2") %>% cutree(clusters) %>% as.data.frame() %>% as.list()
@@ -141,20 +137,23 @@ PLNmixturefamily <-
           clusterings %>%
             map(as_indicator) %>%
             map(.check_boundaries) %>%
-            map(function(Z) PLNmixturefit$new(responses, covariates, offsets, Z, formula, xlevels, control))
+            map(function(Z) {
+              PLNmixturefit$new(responses, covariates, offsets, Z, formula, control)}
+            )
       },
       ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ## Optimization ----------------------
       #' @description Call to the optimizer on all models of the collection
-      optimize = function(control) {
+      #' @param config a list for controlling the optimization
+      optimize = function(config) {
         ## go along the number of clusters (i.e the models)
          self$models <- future.apply::future_lapply(self$models, function(model) {
-          if (control$trace == 1) {
+          if (config$trace == 1) {
             cat("\tnumber of cluster =", model$k, "\r")
             flush.console()
           }
-          model$optimize(self$responses, self$covariates, self$offsets, control)
-          if (control$trace > 1) {
+          model$optimize(self$responses, self$covariates, self$offsets, config)
+          if (config$trace > 1) {
             cat("\r                                                                                    \r")
             flush.console()
           }
@@ -166,7 +165,7 @@ PLNmixturefamily <-
       #' @param control a list to control the smoothing process
       smooth = function(control) {
         if (control$trace > 0) control$trace <- TRUE else control$trace <- FALSE
-        for (i in seq_len(control$iterates)) {
+        for (i in seq_len(control$config_optim$it_smooth)) {
           if (control$smoothing %in% c('backward', 'both')) private$smooth_backward(control)
           if (control$smoothing %in% c('forward' , 'both')) private$smooth_forward(control)
         }

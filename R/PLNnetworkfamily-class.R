@@ -13,8 +13,7 @@
 #' @param offsets the matrix of offsets common to every models
 #' @param weights the vector of observation weights
 #' @param formula model formula used for fitting, extracted from the formula in the upper-level call
-#' @param control a list for controlling the optimization. See details.
-#' @param xlevels named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.
+#' @param control a list for controlling the optimization.
 #' @param var value of the parameter (`rank` for PLNPCA, `sparsity` for PLNnetwork) that identifies the model to be extracted from the collection. If no exact match is found, the model with closest parameter value is returned with a warning.
 #' @param index Integer index of the model to be returned. Only the first value is taken into account
 #'
@@ -38,29 +37,55 @@ PLNnetworkfamily <- R6Class(
     ## Creation functions ----------------
     #' @description Initialize all models in the collection
     #' @return Update current [`PLNnetworkfit`] with smart starting values
-    initialize = function(penalties, responses, covariates, offsets, weights, formula, xlevels, control) {
+    initialize = function(penalties, responses, covariates, offsets, weights, formula, control) {
 
-      ## initialize fields shared by the super class
+      ## Initialize fields shared by the super class
       super$initialize(responses, covariates, offsets, weights, control)
-      ## A basic model for inception
-      myPLN <- PLNfit$new(responses, covariates, offsets, weights, formula, xlevels, control)
-      myPLN$optimize(responses, covariates, offsets, weights, control)
-      control$inception <- myPLN
+
+      ## A basic model for inception, useless one is defined by the user
+### TODO check if it is useful
+      if (is.null(control$inception)) {
+        myPLN <- PLNfit$new(responses, covariates, offsets, weights, formula, control)
+        myPLN$optimize(responses, covariates, offsets, weights, control$config_optim)
+        control$inception <- myPLN
+      }
+
+      if (is.null(control$penalty_weights))
+        control$penalty_weights <- matrix(1, ncol(responses), ncol(responses))
+      ## Get the number of penalty
+      if (is.null(penalties)) {
+        if (is.list(control$penalty_weights))
+          control$n_penalties <- length(control$penalty_weights)
+      } else {
+        control$n_penalties <- length(penalties)
+      }
+      ## Define a matrix of weights for each penalty
+      if (!is.list(control$penalty_weights))
+        list_penalty_weights <- rep(list(control$penalty_weights), control$n_penalties)
+      else
+        list_penalty_weights <- control$penalty_weights
+
       ## Get an appropriate grid of penalties
       if (is.null(penalties)) {
         if (control$trace > 1) cat("\n Recovering an appropriate grid of penalties.")
-        Sigma_hat <- myPLN$model_par$Sigma / control$penalty_weights
-        max_pen <- max(abs(Sigma_hat[upper.tri(Sigma_hat, diag = control$penalize_diagonal)]))
-        penalties <- 10^seq(log10(max_pen), log10(max_pen*control$min.ratio), len = control$nPenalties)
+        max_pen <- list_penalty_weights %>%
+          map(~ myPLN$model_par$Sigma / .x) %>%
+          map_dbl(~ max(abs(.x[upper.tri(.x, diag = control$penalize_diagonal)]))) %>%
+          max()
+        penalties <- 10^seq(log10(max_pen), log10(max_pen*control$min_ratio), len = control$n_penalties)
       } else {
         if (control$trace > 1) cat("\nPenalties already set by the user")
         stopifnot(all(penalties > 0))
       }
+      ## Sort eh penalty in decreasing order
+      o <- order(penalties, decreasing = TRUE)
+      private$params <- penalties[o]
+      list_penalty_weights <- list_penalty_weights[o]
 
       ## instantiate as many models as penalties
-      private$params <- sort(penalties, decreasing = TRUE)
-      self$models <- lapply(private$params, function(penalty) {
-        PLNnetworkfit$new(penalty, responses, covariates, offsets, weights, formula, xlevels, control)
+      control$trace <- 0
+      self$models <- map2(private$params, list_penalty_weights, function(penalty, penalty_weights) {
+        PLNnetworkfit$new(penalty, penalty_weights, responses, covariates, offsets, weights, formula, control)
       })
 
     },
@@ -68,28 +93,28 @@ PLNnetworkfamily <- R6Class(
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Optimization ----------------------
     #' @description Call to the C++ optimizer on all models of the collection
-    optimize = function(control) {
+    #' @param config a list for controlling the optimization.
+    optimize = function(config) {
       ## Go along the penalty grid (i.e the models)
       for (m in seq_along(self$models))  {
 
-        if (control$trace == 1) {
+        if (config$trace == 1) {
           cat("\tsparsifying penalty =", self$models[[m]]$penalty, "\r")
           flush.console()
         }
-        if (control$trace > 1) {
+        if (config$trace > 1) {
           cat("\tsparsifying penalty =", self$models[[m]]$penalty, "- iteration:")
         }
-        self$models[[m]]$optimize(self$responses, self$covariates, self$offsets, self$weights, control)
-        ## Save time by starting the optimization of model m+1  with optimal parameters of model m
+        self$models[[m]]$optimize(self$responses, self$covariates, self$offsets, self$weights, config)
+        ## Save time by starting the optimization of model m + 1  with optimal parameters of model m
         if (m < length(self$penalties))
           self$models[[m + 1]]$update(
-            Theta = self$models[[m]]$model_par$Theta,
-            Sigma = self$models[[m]]$model_par$Sigma,
-            M     = self$models[[m]]$var_par$M,
-            S2    = self$models[[m]]$var_par$S2
+            B = self$models[[m]]$model_par$B,
+            M = self$models[[m]]$var_par$M,
+            S = self$models[[m]]$var_par$S
           )
 
-        if (control$trace > 1) {
+        if (config$trace > 1) {
           cat("\r                                                                                    \r")
           flush.console()
         }
@@ -103,7 +128,7 @@ PLNnetworkfamily <- R6Class(
     #' @description Compute the stability path by stability selection
     #' @param subsamples a list of vectors describing the subsamples. The number of vectors (or list length) determines the number of subsamples used in the stability selection. Automatically set to 20 subsamples with size \code{10*sqrt(n)} if \code{n >= 144} and \code{0.8*n} otherwise following Liu et al. (2010) recommendations.
     #' @param control a list controlling the main optimization process in each call to PLNnetwork. See [PLNnetwork()] for details.
-    stability_selection = function(subsamples = NULL, control = list()) {
+    stability_selection = function(subsamples = NULL, control = PLNnetwork_param()) {
 
       ## select default subsamples according
       if (is.null(subsamples)) {
@@ -120,23 +145,24 @@ PLNnetworkfamily <- R6Class(
         inception_ <- self$getModel(self$penalties[1])
         inception_$update(
           M  = inception_$var_par$M[subsample, ],
-          S2 = inception_$var_par$S2[subsample, ]
+          S  = inception_$var_par$S[subsample, ]
         )
 
-        ctrl_init <- PLN_param(list(), inception_$n, inception_$p)
-        ctrl_init$trace <- 0
-        ctrl_init$inception <- inception_
+        ## force some control parameters
+        control$inception = inception_
+        control$penalty_weights = map(self$models, "penalty_weights")
+        control$penalize_diagonal = (sum(diag(inception_$penalty_weights)) != 0)
+        control$trace <- 0
+        control$config_optim$trace <- 0
+
         myPLN <- PLNnetworkfamily$new(penalties  = self$penalties,
                                       responses  = self$responses [subsample, , drop = FALSE],
                                       covariates = self$covariates[subsample, , drop = FALSE],
                                       offsets    = self$offsets   [subsample, , drop = FALSE],
                                       formula    = private$formula,
-                                      xlevels    = private$xlevels,
-                                      weights    = self$weights   [subsample], control = ctrl_init)
+                                      weights    = self$weights   [subsample], control = control)
 
-        ctrl_main <- PLNnetwork_param(control, inception_$n, inception_$p)
-        ctrl_main$trace <- 0
-        myPLN$optimize(ctrl_main)
+        myPLN$optimize(control$config_optim)
         nets <- do.call(cbind, lapply(myPLN$models, function(model) {
           as.matrix(model$latent_network("support"))[upper.tri(diag(private$p))]
         }))
@@ -145,7 +171,7 @@ PLNnetworkfamily <- R6Class(
 
       prob <- Reduce("+", stabs_out, accumulate = FALSE) / length(subsamples)
       ## formatting/tyding
-      node_set <- rownames(self$getModel(index = 1)$model_par$Theta)
+      node_set <- colnames(self$getModel(index = 1)$model_par$B)
       colnames(prob) <- self$penalties
       private$stab_path <- prob %>%
         as.data.frame() %>%

@@ -97,7 +97,6 @@ Initialize a \code{\link{PLNmixturefit}} model
   offsets,
   posteriorProb,
   formula,
-  xlevels,
   control
 )}\if{html}{\out{</div>}}
 }
@@ -115,11 +114,7 @@ Initialize a \code{\link{PLNmixturefit}} model
 
 \item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
 
-\item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in the upper-level call #'}
-
-\item{\code{control}}{a list for controlling the optimization. See details.}
-
-\item{\code{control}}{a list for controlling the optimization. See details.}
+\item{\code{control}}{a list for controlling the optimization.}
 }
 \if{html}{\out{</div>}}
 }
@@ -130,7 +125,7 @@ Initialize a \code{\link{PLNmixturefit}} model
 \subsection{Method \code{optimize()}}{
 Optimize a \code{\link{PLNmixturefit}} model
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNmixturefit$optimize(responses, covariates, offsets, control)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNmixturefit$optimize(responses, covariates, offsets, config)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -142,9 +137,7 @@ Optimize a \code{\link{PLNmixturefit}} model
 
 \item{\code{offsets}}{the matrix of offsets common to every models}
 
-\item{\code{control}}{a list for controlling the optimization. See details.}
-
-\item{\code{control}}{a list for controlling the optimization. See details.}
+\item{\code{config}}{a list for controlling the optimization}
 }
 \if{html}{\out{</div>}}
 }
@@ -159,7 +152,7 @@ Predict group of new samples
   newdata,
   type = c("posterior", "response", "position"),
   prior = matrix(rep(1/self$k, self$k), nrow(newdata), self$k, byrow = TRUE),
-  control = list(),
+  control = PLNmixture_param(),
   envir = parent.frame()
 )}\if{html}{\out{</div>}}
 }
@@ -176,7 +169,7 @@ with weights equal to the posterior probabilities.}
 
 \item{\code{prior}}{User-specified prior group probabilities in the new data. The default uses a uniform prior.}
 
-\item{\code{control}}{a list for controlling the optimization. See \code{\link[=PLN]{PLN()}} for details.}
+\item{\code{control}}{a list-like structure for controlling the fit. See \code{\link[=PLNmixture_param]{PLNmixture_param()}} for details.}
 
 \item{\code{envir}}{Environment in which the prediction is evaluated}
 }
@@ -242,7 +235,14 @@ a \code{\link{ggplot}} graphic
 \subsection{Method \code{postTreatment()}}{
 Update fields after optimization
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNmixturefit$postTreatment(responses, covariates, offsets, weights, nullModel)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNmixturefit$postTreatment(
+  responses,
+  covariates,
+  offsets,
+  weights,
+  config,
+  nullModel
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -255,6 +255,8 @@ Update fields after optimization
 \item{\code{offsets}}{the matrix of offsets common to every models}
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
+
+\item{\code{config}}{a list for controlling the post-treatment}
 
 \item{\code{nullModel}}{null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.}
 }

@@ -73,7 +73,6 @@ Initialize all models in the collection
   offsets,
   weights,
   formula,
-  xlevels,
   control
 )}\if{html}{\out{</div>}}
 }
@@ -93,9 +92,7 @@ Initialize all models in the collection
 
 \item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
 
-\item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.}
-
-\item{\code{control}}{a list for controlling the optimization. See details.}
+\item{\code{control}}{a list for controlling the optimization.}
 }
 \if{html}{\out{</div>}}
 }
@@ -109,13 +106,13 @@ Update current \code{\link{PLNnetworkfit}} with smart starting values
 \subsection{Method \code{optimize()}}{
 Call to the C++ optimizer on all models of the collection
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfamily$optimize(control)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfamily$optimize(config)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{control}}{a list for controlling the optimization. See details.}
+\item{\code{config}}{a list for controlling the optimization.}
 }
 \if{html}{\out{</div>}}
 }
@@ -126,7 +123,10 @@ Call to the C++ optimizer on all models of the collection
 \subsection{Method \code{stability_selection()}}{
 Compute the stability path by stability selection
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfamily$stability_selection(subsamples = NULL, control = list())}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNnetworkfamily$stability_selection(
+  subsamples = NULL,
+  control = PLNnetwork_param()
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{

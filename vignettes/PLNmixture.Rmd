@@ -9,7 +9,7 @@ output:
 bibliography: article/PLNreferences.bib
 link-citations: yes
 vignette: >
-  %\VignetteIndexEntry{PLNmixture}
+  %\VignetteIndexEntry{Clustering of multivariate count data with PLN-mixture}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 ---
@@ -98,10 +98,10 @@ mixture component. The latent layer then reads
 $$
 \mathbf{Z}_i | \mathbf{C}_i = k \, \sim
 \mathcal{N}({\mathbf{o}_i +
-\mathbf{x}_i^{\top}{\boldsymbol\Theta} + \boldsymbol\mu}^{(k)},{\boldsymbol\Sigma}^{(k)}),
+\mathbf{x}_i^{\top}{\mathbf{B}} + \boldsymbol\mu}^{(k)},{\boldsymbol\Sigma}^{(k)}),
 $$
 
-where ${\boldsymbol\Theta}$ is a $d\times p$ matrix of regression
+where ${\mathbf{B}}$ is a $d\times p$ matrix of regression
 parameters common to all the mixture components.
 
 #### Parametrization of the covariance of the mixture models
@@ -172,8 +172,7 @@ We fit a collection of $K=5$ models with one iteration of forward smoothing of t
 mixture_models <- PLNmixture(
   Abundance ~ 1 + offset(log(Offset)),
   data  = trichoptera,
-  clusters = 1:5,
-  control_main = list(smoothing = "forward", iterates = 1)
+  clusters = 1:4
 )
 ```
 

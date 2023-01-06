@@ -52,7 +52,7 @@ nrow(prepare_data(trichoptera$Abundance[-1, ], ## remove first sample
                   trichoptera$Covariate[-49,]  ## remove last sample
                   ))
 
-## ----import_biom,eval = FALSE-------------------------------------------------
+## ----import_biom, eval = FALSE------------------------------------------------
 #  ## If biomformat is not installed, uncomment the following lines
 #  # if (!requireNamespace("BiocManager", quietly = TRUE)) {
 #  #   install.packages("BiocManager")

@@ -10,7 +10,7 @@ bibliography: article/PLNreferences.bib
 link-citations: yes
 vignette: >
   %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteIndexEntry{PLN}
+  %\VignetteIndexEntry{Analyzing multivariate count data with the Poisson log-normal model}
   %\VignetteEncoding{UTF-8}
 ---
 
@@ -118,15 +118,15 @@ grid.arrange(p.latent + labs(x = "species 1", y = "species 2"),
 This model generalizes naturally to a formulation closer to a multivariate generalized linear model, where the main effect is due to a linear combination of $d$ covariates $\mathbf{x}_i$ (including a vector of intercepts). We also let the possibility to add some offsets for the $p$ variables in in each sample, that is $\mathbf{o}_i$. Hence, the previous model generalizes to
 
 \begin{equation}
-  \mathbf{Y}_i | \mathbf{Z}_i \sim \mathcal{P}\left(\exp\{\mathbf{Z}_i\}\right), \qquad \mathbf{Z}_i \sim \mathcal{N}({\mathbf{o}_i + \mathbf{x}_i^\top\boldsymbol\Theta},\boldsymbol\Sigma), \\
+  \mathbf{Y}_i | \mathbf{Z}_i \sim \mathcal{P}\left(\exp\{\mathbf{Z}_i\}\right), \qquad \mathbf{Z}_i \sim \mathcal{N}({\mathbf{o}_i + \mathbf{x}_i^\top\mathbf{B}},\boldsymbol\Sigma), \\
 \end{equation}
-where $\boldsymbol\Theta$ is a $d\times p$ matrix of regression parameters. When all individuals $i=1,\dots,n$ are stacked together, the data matrices available to feed the model are
+where $\mathbf{B}$ is a $d\times p$ matrix of regression parameters. When all individuals $i=1,\dots,n$ are stacked together, the data matrices available to feed the model are
 
   - the $n\times p$ matrix of counts  $\mathbf{Y}$
   - the $n\times d$ matrix of design  $\mathbf{X}$
   - the $n\times p$ matrix of offsets $\mathbf{O}$
 
-Inference in PLN then focuses on the regression parameters $\boldsymbol\Theta$ and on the covariance matrix $\boldsymbol\Sigma$. 
+Inference in PLN then focuses on the regression parameters $\mathbf{B}$ and on the covariance matrix $\boldsymbol\Sigma$. 
 
 #### Optimization by Variational inference
 
@@ -185,22 +185,23 @@ data.frame(
     theme_bw() + annotation_logticks()
 ```
 
-We can also reach the matrix of regression parameters $\mathbf{\Theta}$ and the residual variance/covariance matrix $\boldsymbol{\Sigma}$ of the latent variable with the traditional functions found in `R` for (G)LM manipulation: for the regression coefficients, we can use the `coef` (or `coefficients`) method. Approximated standard errors of the coefficients are also accessible via `standard_error`:
+<!-- I suggest to comment the part about standard error since we disable this by default. We should present bootstrap and jackknife along with the variational variance, which highly underestimates the variance. -->
 
-```{r coef}
-data.frame(
-  rbind(t(coef(myPLN)), t(standard_error(myPLN))), 
-  row.names = c("effect", "stderr")
- ) %>% select(1:5) %>% knitr::kable()
-```
+<!-- We can also reach the matrix of regression parameters $\mathbf{B}$ and the residual variance/covariance matrix $\boldsymbol{\Sigma}$ of the latent variable with the traditional functions found in `R` for (G)LM manipulation: for the regression coefficients, we can use the `coef` (or `coefficients`) method. Approximated standard errors of the coefficients are also accessible via `standard_error`: -->
+
+<!-- ```{r coef} -->
+<!-- data.frame( -->
+<!--   rbind(coef(myPLN), standard_error(myPLN)),  -->
+<!--   row.names = c("effect", "stderr") -->
+<!--  ) %>% select(1:5) %>% knitr::kable() -->
+<!-- ``` -->
 
 <!-- rmarkdown::paged_table() causes re-building of vignette to fail on CRAN for OS X and Solaris flavor (probably due to a too old version of pandoc) -->
 
-
-The residual covariance matrix better displays as an image matrix: 
+The residual correlation matrix better displays as an image matrix: 
 
 ```{r plot covariance, fig.width=7, fig.height=5}
-corrplot(sigma(myPLN), is.corr = FALSE)
+myPLN %>% sigma() %>% cov2cor() %>% corrplot()
 ```
 
 #### Observation weights
@@ -213,7 +214,7 @@ myPLN_weighted <-
     Abundance ~ 1,
     data    = trichoptera,
     weights = runif(nrow(trichoptera)),
-    control = list(trace = 0)
+    control = PLN_param(trace = 0)
   )
 data.frame(
   unweighted = as.vector(fitted(myPLN)),
@@ -251,7 +252,7 @@ For ecological count data, it is generally a good advice to include the sampling
 ```{r PLN offset}
 myPLN_offsets <- 
   PLN(Abundance ~ 1 + offset(log(Offset)), 
-      data = trichoptera, control = list(trace = 0))
+      data = trichoptera, control = PLN_param(trace = 0))
 ```
 
 Note that we use the function `offset` with a log-transform of the total counts since it acts in the latent layer of the model. Obviously the model with offsets is better since the log-likelihood is higher with the same number of parameters^[In **PLNmodels** the R-squared is a pseudo-R-squared that can only be trusted between model where the same offsets term was used]:
@@ -285,7 +286,7 @@ It is possible to change a bit the parametrization used for modeling the residua
 myPLN_spherical <-
   PLN(
     Abundance ~ 1 + offset(log(Offset)),
-    data = trichoptera, control = list(covariance = "spherical", trace = 0)
+    data = trichoptera, control = PLN_param(covariance = "spherical", trace = 0)
   )
 ```
 
@@ -294,7 +295,7 @@ myPLN_spherical <-
 myPLN_diagonal <-
   PLN(
     Abundance ~ 1 + offset(log(Offset)),
-    data = trichoptera, control = list(covariance = "diagonal", trace = 0)
+    data = trichoptera, control = PLN_param(covariance = "diagonal", trace = 0)
   )
 ```
 
@@ -303,7 +304,7 @@ Note that, by default, the model chosen is `covariance = "spherical"`, so that t
 myPLN_default <-
   PLN(Abundance ~ 1, data = trichoptera, )
 myPLN_full <-
-  PLN(Abundance ~ 1, data = trichoptera, control = list(covariance = "full"))
+  PLN(Abundance ~ 1, data = trichoptera, control = PLN_param(covariance = "full"))
 ```
 
 Different covariance models can then be compared with the usual criteria: it seems that the gain brought by passing from a diagonal matrix to a fully parameterized covariance is not worth having so many additional parameters:
@@ -324,7 +325,7 @@ A final model that we can try is the diagonal one with the wind as a covariate, 
 myPLN_final <-
   PLN(
     Abundance ~ 1 + Wind + offset(log(Offset)),
-    data    = trichoptera, control = list(covariance = "diagonal", trace = 0)
+    data    = trichoptera, control = PLN_param(covariance = "diagonal", trace = 0)
   )
 rbind(
   myPLN_wind$criteria,

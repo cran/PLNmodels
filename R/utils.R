@@ -1,3 +1,94 @@
+available_algorithms_nlopt <- c("MMA", "CCSAQ", "LBFGS", "LBFGS_NOCEDAL", "VAR1", "VAR2")
+available_algorithms_torch <- c("RPROP", "RMSPROP", "ADAM", "ADAGRAD")
+
+config_default_nlopt <-
+  list(
+    algorithm     = "CCSAQ",
+    maxeval       = 10000  ,
+    ftol_rel      = 1e-8   ,
+    xtol_rel      = 1e-6   ,
+    ftol_abs      = 0.0    ,
+    xtol_abs      = 0.0    ,
+    maxtime       = -1
+  )
+
+config_default_torch <-
+  list(
+    algorithm     = "RPROP",
+    maxeval       = 10000  ,
+    num_epoch     = 1000   ,
+    num_batch     = 1      ,
+    ftol_rel      = 1e-8   ,
+    xtol_rel      = 1e-6   ,
+    lr            = 0.1    ,
+    momentum      = 0.05   ,
+    weight_decay  = 0      ,
+    step_sizes    = c(1e-3, 50),
+    etas          = c(0.5, 1.2),
+    centered      = FALSE,
+    trace         = 1
+  )
+
+config_post_default_PLN <-
+  list(
+    jackknife       = FALSE,
+    bootstrap       = 0L,
+    rsquared        = TRUE,
+    variational_var = FALSE,
+    sandwich_var    = FALSE
+  )
+
+config_post_default_PLNnetwork <-
+  list(
+    jackknife       = FALSE,
+    bootstrap       = 0L,
+    rsquared        = FALSE,
+    variational_var = FALSE,
+    sandwich_var    = FALSE
+  )
+
+config_post_default_PLNLDA <-
+  list(
+    jackknife       = FALSE,
+    bootstrap       = 0L,
+    rsquared        = TRUE,
+    variational_var = FALSE
+  )
+
+config_post_default_PLNPCA <-
+  list(
+    jackknife       = FALSE,
+    bootstrap       = 0L,
+    rsquared        = TRUE,
+    variational_var = FALSE
+  )
+
+config_post_default_PLNmixture <-
+  list(
+    jackknife       = FALSE,
+    bootstrap       = 0L,
+    rsquared        = FALSE,
+    variational_var = FALSE
+  )
+
+status_to_message <- function(status) {
+  message <- switch(as.character(status),
+                    "1"  = "success",
+                    "2"  = "success, stopval was reached",
+                    "3"  = "success, ftol_rel or ftol_abs was reached",
+                    "4"  = "success, xtol_rel or xtol_abs was reached",
+                    "5"  = "success, maxeval was reached",
+                    "6"  = "success, maxtime was reached",
+                    "-1" = "failure",
+                    "-2" = "invalid arguments",
+                    "-3" = "out of memory.",
+                    "-4" = "roundoff errors led to a breakdown of the optimization algorithm",
+                    "-5" = "forced termination:",
+                    "Return status not recognized"
+  )
+  message
+}
+
 trace <- function(x) sum(diag(x))
 
 .xlogx <- function(x) ifelse(x < .Machine$double.eps, 0, x*log(x))
@@ -7,7 +98,7 @@ trace <- function(x) sum(diag(x))
   exp(x - b) / sum(exp(x - b))
 }
 
-.logit <- function (x) log(x/(1-x))
+.logit <- function(x) log(x/(1 - x))
 
 .check_boundaries <- function(x, zero = .Machine$double.eps) {
   x[is.nan(x)] <- zero
@@ -18,7 +109,7 @@ trace <- function(x) sum(diag(x))
 
 .logfactorial <- function(n) { # Ramanujan's formula
   n[n == 0] <- 1 ## 0! = 1!
-  return(n*log(n) - n + log(8*n^3 + 4*n^2 + n + 1/30)/6 + log(pi)/2)
+  n*log(n) - n + log(8*n^3 + 4*n^2 + n + 1/30)/6 + log(pi)/2
 }
 
 as_indicator <- function(clustering) {
@@ -35,26 +126,22 @@ logLikPoisson <- function(responses, lambda, weights = rep(1, nrow(responses))) 
   loglik
 }
 
-#' @importFrom stats glm.fit
+#' @importFrom stats glm.fit glm.control
 nullModelPoisson <- function(responses, covariates, offsets, weights = rep(1, nrow(responses))) {
-  Theta <- do.call(rbind, lapply(1:ncol(responses), function(j)
-    coefficients(suppressWarnings(glm.fit(covariates, responses[, j], weights = weights, offset = offsets[, j], family = stats::poisson())))))
-  lambda <- offsets + tcrossprod(covariates, Theta)
-  lambda
-}
-
-fullModelPoisson <- function(responses, weights = rep(1, nrow(responses))) {
-  lambda <- log(responses)
-  # lambda <- log(sweep(responses, 1, weights, "*"))
-  lambda
+### TODO: use fastglm
+  B <- do.call(cbind, future_lapply(1:ncol(responses), function(j)
+    coefficients(suppressWarnings(
+      glm.fit(covariates, responses[, j], weights = weights, offset = offsets[, j], family = stats::poisson(),
+        control = glm.control(epsilon = 1e-3, maxit = 10))))))
+  offsets + covariates %*% B
 }
 
 #' @importFrom stats .getXlevels
-extract_model <- function(call, envir, xlev = NULL) {
+extract_model <- function(call, envir) {
 
   ## extract relevant arguments from the high level call for the model frame
   call_args <- call[match(c("formula", "data", "subset", "weights"), names(call), 0L)]
-  call_args <- c(as.list(call_args), list(xlev = xlev))
+  call_args <- c(as.list(call_args), list(xlev = attr(call$formula, "xlevels")))
 
   ## eval the call in the parent environment
   frame <- do.call(stats::model.frame, call_args, envir = envir)
@@ -71,9 +158,9 @@ extract_model <- function(call, envir, xlev = NULL) {
   } else {
     stopifnot(all(w > 0) && length(w) == nrow(Y))
   }
-  ## Save encoutered levels for predict methods
-  xlevels <- .getXlevels(terms(frame), frame)
-  list(Y = Y, X = X, O = O, w = w, formula = call$formula, xlevels = xlevels)
+  ## Save encountered levels for predict methods as attribute of the formula
+  attr(call$formula, "xlevels") <- .getXlevels(terms(frame), frame)
+  list(Y = Y, X = X, O = O, w = w, formula = call$formula)
 }
 
 edge_to_node <- function(x, n = max(x)) {
@@ -142,115 +229,23 @@ rPLN <- function(n = 10, mu = rep(0, ncol(Sigma)), Sigma = diag(1, 5, 5),
   Y
 }
 
-available_algorithms <- c("MMA", "CCSAQ", "LBFGS", "LBFGS_NOCEDAL", "VAR1", "VAR2")
-
-## -----------------------------------------------------------------
-##  Series of setter to default parameters for user's main functions
-##
-## should be ready to pass to nlopt optimizer
-PLN_param <- function(control, n, p) {
-  xtol_abs    <- ifelse(is.null(control$xtol_abs)   , 0         , control$xtol_abs)
-  covariance  <- ifelse(is.null(control$covariance) , "full"    , control$covariance)
-  covariance  <- ifelse(is.null(control$inception)  , covariance, control$inception$vcov_model)
-  ctrl <- list(
-    "algorithm"   = "CCSAQ",
-    "maxeval"     = 10000  ,
-    "maxtime"     = -1     ,
-    "ftol_rel"    = ifelse(n < 1.5*p, 1e-6, 1e-8),
-    "ftol_abs"    = 0,
-    "xtol_rel"    = 1e-4,
-    "xtol_abs"    = xtol_abs,
-    "trace"       = 1,
-    "covariance"  = covariance,
-    "corr_matrix" = diag(x = 1, nrow = p, ncol = p),
-    "inception"   = NULL
-  )
-  ctrl[names(control)] <- control
-  stopifnot(ctrl$algorithm %in% available_algorithms)
-  ctrl
-}
-
-## should be ready to pass to nlopt optimizer
-PLNmixture_param <- function(control, n, p) {
-  xtol_abs    <- ifelse(is.null(control$xtol_abs)   , 0         , control$xtol_abs)
-  covariance  <- ifelse(is.null(control$covariance) , "spherical", control$covariance)
-  covariance  <- ifelse(is.null(control$inception), covariance  , control$inception$model)
-  ctrl <- list(
-    "ftol_out"    = 1e-3,
-    "maxit_out"   = 50,
-    "algorithm"   = "CCSAQ",
-    "maxeval"     = 10000  ,
-    "maxtime"     = -1     ,
-    "ftol_rel"    = ifelse(n < 1.5*p, 1e-6, 1e-8),
-    "ftol_abs"    = 0,
-    "xtol_rel"    = 1e-4,
-    "xtol_abs"    = xtol_abs,
-    "trace"       = 1,
-    "covariance"  = covariance,
-    "iterates"    = 2,
-    "smoothing"   = 'both',
-    "inception"   = NULL,
-    "init_cl"     = 'kmeans'
-  )
-  ctrl[names(control)] <- control
-  ctrl
-}
-
-PLNPCA_param <- function(control) {
-  ctrl <- list(
-      "algorithm"   = "CCSAQ" ,
-      "ftol_rel"    = 1e-8    ,
-      "ftol_abs"    = 0       ,
-      "xtol_rel"    = 1e-4    ,
-      "xtol_abs"    = 0       ,
-      "maxeval"     = 10000   ,
-      "maxtime"     = -1      ,
-      "trace"       = 1       ,
-      "covariance"  = "rank"
-    )
-  ctrl[names(control)] <- control
-  stopifnot(ctrl$algorithm %in% available_algorithms)
-  ctrl
-}
-
-PLNnetwork_param <- function(control, n, p) {
-  xtol_abs    <- ifelse(is.null(control$xtol_abs)   , 0         , control$xtol_abs)
-  ctrl <-  list(
-    "ftol_out"  = 1e-5,
-    "maxit_out" = 20,
-    "penalize_diagonal" = TRUE,
-    "penalty_weights"   = matrix(1, p, p),
-    "warm"        = FALSE,
-    "algorithm"   = "CCSAQ",
-    "ftol_rel"    = ifelse(n < 1.5*p, 1e-6, 1e-8),
-    "ftol_abs"    = 0       ,
-    "xtol_rel"    = 1e-4    ,
-    "xtol_abs"    = xtol_abs,
-    "maxeval"     = 10000   ,
-    "maxtime"     = -1      ,
-    "trace"       = 1       ,
-    "covariance"  = "sparse"
-  )
-  ctrl[names(control)] <- control
-  stopifnot(ctrl$algorithm %in% available_algorithms)
-  stopifnot(isSymmetric(ctrl$penalty_weights), all(ctrl$penalty_weights > 0))
-  ctrl
-}
-
-statusToMessage <- function(status) {
-    message <- switch(as.character(status),
-        "1"  = "success",
-        "2"  = "stopval was reached",
-        "3"  = "ftol_rel or ftol_abs was reached",
-        "4"  = "xtol_rel or xtol_abs was reached",
-        "5"  = "maxeval was reached",
-        "6"  = "maxtime was reached",
-        "-1" = "failure",
-        "-2" = "invalid arguments",
-        "-3" = "out of memory.",
-        "-4" = "roundoff errors led to a breakdown of the optimization algorithm",
-        "-5" = "forced termination:",
-        "Return status not recognized"
-    )
-    message
+# Internal function
+#' @importFrom stats rnorm
+create_parameters <- function(
+    n = 200,
+    p = 50,
+    d = 2,
+    rho = 0.2,
+    sigma = 1,
+    depths = 100000,
+    ...
+) {
+  ## Sigma chosen to achieve a given snr
+  list(n      = n,
+       p      = p,
+       X      = matrix(rnorm(n*d), nrow = n, ncol = d,
+                       dimnames = list(paste0("S", 1:n), paste0("Var_", 1:d))),
+       Theta  = matrix(rnorm(n = p*d, sd = 1/sqrt(d)), nrow = p, ncol = d),
+       Sigma  = sigma * toeplitz(x = rho^seq(0, p-1)),
+       depths = depths)
 }

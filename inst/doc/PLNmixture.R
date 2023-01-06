@@ -22,8 +22,7 @@ trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 mixture_models <- PLNmixture(
   Abundance ~ 1 + offset(log(Offset)),
   data  = trichoptera,
-  clusters = 1:5,
-  control_main = list(smoothing = "forward", iterates = 1)
+  clusters = 1:4
 )
 
 ## ----show nocov---------------------------------------------------------------

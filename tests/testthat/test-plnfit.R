@@ -6,21 +6,19 @@ trichoptera <- prepare_data(trichoptera$Abundance, trichoptera$Covariate)
 test_that("PLN fit: check classes, getters and field access",  {
 
   expect_output(model <- PLN(Abundance ~ 1, data = trichoptera,
-                             control = list(trace = 2)),
+                             control = PLN_param(trace = 1)),
 "
  Initialization...
- Use LM after log transformation to define the inceptive model
- Adjusting a PLN model with full covariance model
+ Adjusting a full covariance PLN model with nlopt optimizer
  Post-treatments...
  DONE!"
   )
 
   expect_output(model <- PLN(Abundance ~ 1, data = trichoptera,
-                             control = list(trace = 2, inception = model)),
+                             control = PLN_param(trace = 1, inception = model)),
 "
  Initialization...
- User defined inceptive PLN model
- Adjusting a PLN model with full covariance model
+ Adjusting a full covariance PLN model with nlopt optimizer
  Post-treatments...
  DONE!"
   )
@@ -33,10 +31,10 @@ test_that("PLN fit: check classes, getters and field access",  {
   expect_equal(model$d, 1)
 
   ## S3 methods: values
-  expect_equal(coef(model), model$model_par$Theta)
+  expect_equal(coef(model), model$model_par$B)
   expect_equal(coef(model, type = "covariance"), sigma(model))
   expect_equal(sigma(model), model$model_par$Sigma)
-  expect_equal(vcov(model), model$fisher$mat)
+  # expect_equal(vcov(model), model$vcov_coef)
 
   ## S3 methods: class
   expect_true(inherits(coef(model), "matrix"))
@@ -44,23 +42,12 @@ test_that("PLN fit: check classes, getters and field access",  {
   # expect_true(inherits(vcov(model), "dsCMatrix"))
 
   ## S3 methods: dimensions
-  expect_equal(dim(vcov(model)), c(model$d * model$p, model$d * model$p))
-
-  ## S3 methods errors
-  expect_error(standard_error(model, type = "louis"),
-               "Standard errors were not computed using the louis approximation. Try another approximation scheme.")
+  ## expect_equal(dim(vcov(model)), c(model$d * model$p, model$d * model$p))
 
   ## R6 bindings
   expect_is(model$latent, "matrix")
   expect_true(is.numeric(model$latent))
   expect_equal(dim(model$latent), c(model$n, model$p))
-
-  ## Fisher
-  X <- model.matrix(Abundance ~ 1, data = trichoptera)
-  fisher_louis <- model$compute_fisher(type = "louis", X = X)
-  fisher_wald  <- model$compute_fisher(type = "wald", X = X)
-  ## Louis fisher matrix is (component-wise) larger than its wald counterpart
-  expect_gte(min(fisher_louis - fisher_wald), 0)
 
 })
 
@@ -87,21 +74,6 @@ capture_output(print(as.data.frame(round(model$criteria, digits = 3), row.names 
   ## show and print are equivalent
   expect_equal(capture_output(model$show()),
                capture_output(model$print()))
-})
-
-test_that("standard error fails for degenerate models", {
-  trichoptera$X1 <- ifelse(trichoptera$Cloudiness <= 50, 0, 1)
-  trichoptera$X2 <- 1 - trichoptera$X1
-  # expect_warning(model <- PLN(Abundance ~ 1 + X1 + X2, data = trichoptera),
-  #                "Something went wrong during model fitting!!\nMatrix A has missing values.")
-  model <- PLN(Abundance ~ 1 + X1, data = trichoptera)
-  ## Force a degenerate matrix in the FIM slot
-  model$.__enclos_env__$private$FIM <- diag(0, nrow = model$p * model$d)
-  expect_warning(std_err <- model$compute_standard_error(),
-                 "Inversion of the Fisher information matrix failed with following error message:")
-  expect_equal(std_err,
-               matrix(NA, nrow = model$p, ncol = model$d,
-                      dimnames = dimnames(coef(model))))
 })
 
 test_that("PLN fit: Check prediction",  {
@@ -181,10 +153,16 @@ test_that("PLN fit: Check number of parameters",  {
   model <- PLN(Abundance ~ Group + 0 , data = trichoptera)
   expect_equal(model$nb_param, p*(p+1)/2 + p * nlevels(trichoptera$Group))
 
-  model <- PLN(Abundance ~ 1, data = trichoptera, control = list(covariance = "diagonal"))
-  expect_equal(model$nb_param, p + p * 1)
+  modelS <- PLN(Abundance ~ 1, data = trichoptera, control = PLN_param(covariance = "spherical"))
+  expect_equal(modelS$nb_param, 1 + p * 1)
+  expect_equal(modelS$vcov_model, "spherical")
 
-  model <- PLN(Abundance ~ 1, data = trichoptera, control = list(covariance = "spherical"))
-  expect_equal(model$nb_param, 1 + p * 1)
+  modelD <- PLN(Abundance ~ 1, data = trichoptera, control = PLN_param(covariance = "diagonal"))
+  expect_equal(modelD$nb_param, p + p * 1)
+  expect_equal(modelD$vcov_model, "diagonal")
+
+  model <- PLN(Abundance ~ 1, data = trichoptera, control = PLN_param(covariance = "fixed", Omega = as.matrix(modelD$model_par$Omega)))
+  expect_equal(model$nb_param, 0 + p * 1)
+  expect_equal(model$vcov_model, "fixed")
 
 })

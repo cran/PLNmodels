@@ -81,14 +81,8 @@ data.frame(
     scale_y_log10() + 
     theme_bw() + annotation_logticks()
 
-## ----coef---------------------------------------------------------------------
-data.frame(
-  rbind(t(coef(myPLN)), t(standard_error(myPLN))), 
-  row.names = c("effect", "stderr")
- ) %>% select(1:5) %>% knitr::kable()
-
 ## ----plot covariance, fig.width=7, fig.height=5-------------------------------
-corrplot(sigma(myPLN), is.corr = FALSE)
+myPLN %>% sigma() %>% cov2cor() %>% corrplot()
 
 ## ----weighted, fig.width=7, fig.height=5--------------------------------------
 myPLN_weighted <-
@@ -96,7 +90,7 @@ myPLN_weighted <-
     Abundance ~ 1,
     data    = trichoptera,
     weights = runif(nrow(trichoptera)),
-    control = list(trace = 0)
+    control = PLN_param(trace = 0)
   )
 data.frame(
   unweighted = as.vector(fitted(myPLN)),
@@ -111,7 +105,7 @@ data.frame(
 ## ----PLN offset---------------------------------------------------------------
 myPLN_offsets <- 
   PLN(Abundance ~ 1 + offset(log(Offset)), 
-      data = trichoptera, control = list(trace = 0))
+      data = trichoptera, control = PLN_param(trace = 0))
 
 ## ----compare w/wo offset------------------------------------------------------
 rbind(
@@ -132,21 +126,21 @@ rbind(
 myPLN_spherical <-
   PLN(
     Abundance ~ 1 + offset(log(Offset)),
-    data = trichoptera, control = list(covariance = "spherical", trace = 0)
+    data = trichoptera, control = PLN_param(covariance = "spherical", trace = 0)
   )
 
 ## ----covariances model diagonal-----------------------------------------------
 myPLN_diagonal <-
   PLN(
     Abundance ~ 1 + offset(log(Offset)),
-    data = trichoptera, control = list(covariance = "diagonal", trace = 0)
+    data = trichoptera, control = PLN_param(covariance = "diagonal", trace = 0)
   )
 
 ## ----PLN covariance full, evaluate = FALSE------------------------------------
 myPLN_default <-
   PLN(Abundance ~ 1, data = trichoptera, )
 myPLN_full <-
-  PLN(Abundance ~ 1, data = trichoptera, control = list(covariance = "full"))
+  PLN(Abundance ~ 1, data = trichoptera, control = PLN_param(covariance = "full"))
 
 ## ----compare covariances------------------------------------------------------
 rbind(
@@ -161,7 +155,7 @@ rbind(
 myPLN_final <-
   PLN(
     Abundance ~ 1 + Wind + offset(log(Offset)),
-    data    = trichoptera, control = list(covariance = "diagonal", trace = 0)
+    data    = trichoptera, control = PLN_param(covariance = "diagonal", trace = 0)
   )
 rbind(
   myPLN_wind$criteria,

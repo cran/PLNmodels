@@ -32,7 +32,7 @@ The function \code{\link{PLNLDA}}.
 
 \item{\code{nb_param}}{number of parameters in the current PLN model}
 
-\item{\code{model_par}}{a list with the matrices associated with the estimated parameters of the PLN model: Theta (covariates), Sigma (latent covariance), B (latent loadings), P (latent position) and Mu (group means)}
+\item{\code{model_par}}{a list with the matrices associated with the estimated parameters of the PLN model: B (covariates), Sigma (latent covariance), C (latent loadings), P (latent position) and Mu (group means)}
 
 \item{\code{percent_var}}{the percent of variance explained by each axis}
 
@@ -60,14 +60,11 @@ The function \code{\link{PLNLDA}}.
 }
 }
 \if{html}{\out{
-<details><summary>Inherited methods</summary>
+<details open><summary>Inherited methods</summary>
 <ul>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="VEstep"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-VEstep'><code>PLNmodels::PLNfit$VEstep()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="compute_fisher"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-compute_fisher'><code>PLNmodels::PLNfit$compute_fisher()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="compute_standard_error"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-compute_standard_error'><code>PLNmodels::PLNfit$compute_standard_error()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="optimize_vestep"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-optimize_vestep'><code>PLNmodels::PLNfit$optimize_vestep()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="predict_cond"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-predict_cond'><code>PLNmodels::PLNfit$predict_cond()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="print"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-print'><code>PLNmodels::PLNfit$print()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="set_R2"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-set_R2'><code>PLNmodels::PLNfit$set_R2()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="update"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-update'><code>PLNmodels::PLNfit$update()</code></a></span></li>
 </ul>
 </details>
@@ -85,7 +82,6 @@ Initialize a \code{\link{PLNLDAfit}} object
   offsets,
   weights,
   formula,
-  xlevels,
   control
 )}\if{html}{\out{</div>}}
 }
@@ -105,9 +101,7 @@ Initialize a \code{\link{PLNLDAfit}} object
 
 \item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
 
-\item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.}
-
-\item{\code{control}}{a list for controlling the optimization. See details.}
+\item{\code{control}}{list controlling the optimization and the model}
 }
 \if{html}{\out{</div>}}
 }
@@ -119,17 +113,23 @@ Initialize a \code{\link{PLNLDAfit}} object
 Compute group means and axis of the LDA (noted B in the model) in the
 latent space, update corresponding fields
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNLDAfit$optimize(grouping, covariates, control)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNLDAfit$optimize(grouping, responses, covariates, offsets, weights, config)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{grouping}}{design matrix for the grouping variable}
+\item{\code{grouping}}{a factor specifying the class of each observation used for discriminant analysis.}
+
+\item{\code{responses}}{the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
 
 \item{\code{covariates}}{design matrix. Automatically built from the covariates and the formula from the call}
 
-\item{\code{control}}{a list for controlling the optimization. See details.}
+\item{\code{offsets}}{offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
+
+\item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
+
+\item{\code{config}}{list controlling the optimization}
 
 \item{\code{X}}{Abundance matrix.}
 }
@@ -141,9 +141,8 @@ latent space, update corresponding fields
 \if{latex}{\out{\hypertarget{method-PLNLDAfit-postTreatment}{}}}
 \subsection{Method \code{postTreatment()}}{
 Update R2, fisher and std_err fields and visualization
-after optimization
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNLDAfit$postTreatment(grouping, responses, covariates, offsets)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNLDAfit$postTreatment(grouping, responses, covariates, offsets, config)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -156,6 +155,8 @@ after optimization
 \item{\code{covariates}}{design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
 
 \item{\code{offsets}}{offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class}
+
+\item{\code{config}}{list controlling the post-treatment}
 }
 \if{html}{\out{</div>}}
 }
@@ -275,7 +276,7 @@ Predict group of new samples
   type = c("posterior", "response", "scores"),
   scale = c("log", "prob"),
   prior = NULL,
-  control = list(),
+  control = PLN_param(backend = "nlopt"),
   envir = parent.frame()
 )}\if{html}{\out{</div>}}
 }

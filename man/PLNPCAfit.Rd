@@ -27,13 +27,15 @@ The function \code{\link{PLNPCA}}, the class \code{\link[=PLNPCAfamily]{PLNPCAfa
 \describe{
 \item{\code{rank}}{the dimension of the current model}
 
+\item{\code{vcov_model}}{character: the model used for the residual covariance}
+
 \item{\code{nb_param}}{number of parameters in the current PLN model}
 
 \item{\code{entropy}}{entropy of the variational distribution}
 
 \item{\code{latent_pos}}{a matrix: values of the latent position vector (Z) without covariates effects or offset}
 
-\item{\code{model_par}}{a list with the matrices associated with the estimated parameters of the pPCA model: Theta (covariates), Sigma (latent covariance) and B (latent loadings)}
+\item{\code{model_par}}{a list with the matrices associated with the estimated parameters of the pPCA model: B (covariates), Sigma (covariance), Omega (precision) and C (loadings)}
 
 \item{\code{percent_var}}{the percent of variance explained by each axis}
 
@@ -59,11 +61,10 @@ The function \code{\link{PLNPCA}}, the class \code{\link[=PLNPCAfamily]{PLNPCAfa
 \item \href{#method-PLNPCAfit-new}{\code{PLNPCAfit$new()}}
 \item \href{#method-PLNPCAfit-update}{\code{PLNPCAfit$update()}}
 \item \href{#method-PLNPCAfit-optimize}{\code{PLNPCAfit$optimize()}}
-\item \href{#method-PLNPCAfit-VEstep}{\code{PLNPCAfit$VEstep()}}
+\item \href{#method-PLNPCAfit-optimize_vestep}{\code{PLNPCAfit$optimize_vestep()}}
 \item \href{#method-PLNPCAfit-project}{\code{PLNPCAfit$project()}}
 \item \href{#method-PLNPCAfit-setVisualization}{\code{PLNPCAfit$setVisualization()}}
 \item \href{#method-PLNPCAfit-postTreatment}{\code{PLNPCAfit$postTreatment()}}
-\item \href{#method-PLNPCAfit-compute_fisher}{\code{PLNPCAfit$compute_fisher()}}
 \item \href{#method-PLNPCAfit-plot_individual_map}{\code{PLNPCAfit$plot_individual_map()}}
 \item \href{#method-PLNPCAfit-plot_correlation_circle}{\code{PLNPCAfit$plot_correlation_circle()}}
 \item \href{#method-PLNPCAfit-plot_PCA}{\code{PLNPCAfit$plot_PCA()}}
@@ -74,11 +75,9 @@ The function \code{\link{PLNPCA}}, the class \code{\link[=PLNPCAfamily]{PLNPCAfa
 \if{html}{\out{
 <details open><summary>Inherited methods</summary>
 <ul>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="compute_standard_error"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-compute_standard_error'><code>PLNmodels::PLNfit$compute_standard_error()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="predict"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-predict'><code>PLNmodels::PLNfit$predict()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="predict_cond"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-predict_cond'><code>PLNmodels::PLNfit$predict_cond()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="print"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-print'><code>PLNmodels::PLNfit$print()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="PLNmodels" data-topic="PLNfit" data-id="set_R2"><a href='../../PLNmodels/html/PLNfit.html#method-PLNfit-set_R2'><code>PLNmodels::PLNfit$set_R2()</code></a></span></li>
 </ul>
 </details>
 }}
@@ -88,16 +87,7 @@ The function \code{\link{PLNPCA}}, the class \code{\link[=PLNPCAfamily]{PLNPCAfa
 \subsection{Method \code{new()}}{
 Initialize a \code{\link{PLNPCAfit}} object
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$new(
-  rank,
-  responses,
-  covariates,
-  offsets,
-  weights,
-  formula,
-  xlevels,
-  control
-)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$new(rank, responses, covariates, offsets, weights, formula, control)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -115,8 +105,6 @@ Initialize a \code{\link{PLNPCAfit}} object
 
 \item{\code{formula}}{model formula used for fitting, extracted from the formula in the upper-level call}
 
-\item{\code{xlevels}}{named listed of factor levels included in the models, extracted from the formula in the upper-level call and used for predictions.}
-
 \item{\code{control}}{a list for controlling the optimization. See details.}
 }
 \if{html}{\out{</div>}}
@@ -129,11 +117,12 @@ Initialize a \code{\link{PLNPCAfit}} object
 Update a \code{\link{PLNPCAfit}} object
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$update(
-  Theta = NA,
-  Sigma = NA,
   B = NA,
+  Sigma = NA,
+  Omega = NA,
+  C = NA,
   M = NA,
-  S2 = NA,
+  S = NA,
   Z = NA,
   A = NA,
   Ji = NA,
@@ -145,15 +134,17 @@ Update a \code{\link{PLNPCAfit}} object
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{Theta}}{matrix of regression matrix}
+\item{\code{B}}{matrix of regression matrix}
 
 \item{\code{Sigma}}{variance-covariance matrix of the latent variables}
 
-\item{\code{B}}{matrix of PCA loadings (in the latent space)}
+\item{\code{Omega}}{precision matrix of the latent variables. Inverse of Sigma.}
+
+\item{\code{C}}{matrix of PCA loadings (in the latent space)}
 
 \item{\code{M}}{matrix of mean vectors for the variational approximation}
 
-\item{\code{S2}}{matrix of variance vectors for the variational approximation}
+\item{\code{S}}{matrix of variance vectors for the variational approximation}
 
 \item{\code{Z}}{matrix of latent vectors (includes covariates and offset effects)}
 
@@ -177,7 +168,7 @@ Update the current \code{\link{PLNPCAfit}} object
 \subsection{Method \code{optimize()}}{
 Call to the C++ optimizer and update of the relevant fields
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$optimize(responses, covariates, offsets, weights, control)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$optimize(responses, covariates, offsets, weights, config)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -191,23 +182,23 @@ Call to the C++ optimizer and update of the relevant fields
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
 
-\item{\code{control}}{a list for controlling the optimization. See details.}
+\item{\code{config}}{part of the \code{control} argument which configures the optimizer}
 }
 \if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-PLNPCAfit-VEstep"></a>}}
-\if{latex}{\out{\hypertarget{method-PLNPCAfit-VEstep}{}}}
-\subsection{Method \code{VEstep()}}{
-Result of one call to the VE step of the optimization procedure: optimal variational parameters (M, S) and corresponding log likelihood values for fixed model parameters (B, Theta). Intended to position new data in the latent space for further use with PCA.
+\if{html}{\out{<a id="method-PLNPCAfit-optimize_vestep"></a>}}
+\if{latex}{\out{\hypertarget{method-PLNPCAfit-optimize_vestep}{}}}
+\subsection{Method \code{optimize_vestep()}}{
+Result of one call to the VE step of the optimization procedure: optimal variational parameters (M, S) and corresponding log likelihood values for fixed model parameters (C, B). Intended to position new data in the latent space for further use with PCA.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$VEstep(
+\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$optimize_vestep(
   covariates,
   offsets,
   responses,
-  weights = rep(1, nrow(responses)),
-  control = list()
+  weights = rep(1, self$n),
+  control = PLNPCA_param(backend = "nlopt")
 )}\if{html}{\out{</div>}}
 }
 
@@ -241,7 +232,7 @@ A list with three components:
 \subsection{Method \code{project()}}{
 Project new samples into the PCA space using one VE step
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$project(newdata, control = list(), envir = parent.frame())}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$project(newdata, control = PLNPCA_param(), envir = parent.frame())}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -285,7 +276,14 @@ Compute PCA scores in the latent space and update corresponding fields.
 Update R2, fisher, std_err fields and set up visualization
 after optimization
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$postTreatment(responses, covariates, offsets, weights, nullModel)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$postTreatment(
+  responses,
+  covariates,
+  offsets,
+  weights,
+  control,
+  nullModel
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -299,31 +297,11 @@ after optimization
 
 \item{\code{weights}}{an optional vector of observation weights to be used in the fitting process.}
 
+\item{\code{control}}{a list for controlling the optimization. See details.}
+
 \item{\code{nullModel}}{null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.}
 }
 \if{html}{\out{</div>}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-PLNPCAfit-compute_fisher"></a>}}
-\if{latex}{\out{\hypertarget{method-PLNPCAfit-compute_fisher}{}}}
-\subsection{Method \code{compute_fisher()}}{
-Safely compute the fisher information matrix (FIM)
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{PLNPCAfit$compute_fisher(type = c("wald", "louis"), X = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{type}}{approximation scheme to compute the fisher information matrix. Either \code{wald} (default) or \code{louis}. \code{type = "louis"} results in smaller confidence intervals.}
-
-\item{\code{X}}{design matrix used to compute the FIM}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-a sparse matrix with sensible dimension names
 }
 }
 \if{html}{\out{<hr>}}

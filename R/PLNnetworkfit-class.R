@@ -1,22 +1,24 @@
 #' An R6 Class to represent a PLNfit in a sparse inverse covariance framework
 #'
 #' @description The function [PLNnetwork()] produces a collection of models which are instances of object with class [`PLNnetworkfit`].
-#'
 #' This class comes with a set of methods, some of them being useful for the user:
 #' See the documentation for [`plot()`][plot.PLNnetworkfit()] and methods inherited from [`PLNfit`].
 #'
-#' @param responses the matrix of responses common to every models
-#' @param covariates the matrix of covariates common to every models
-#' @param offsets the matrix of offsets common to every models
-#' @param subset an optional vector specifying a subset of observations to be used in the fitting process.
+## Parameters common to all PLN-xx-fit methods (shared with PLNfit but inheritance does not work)
+#' @param responses the matrix of responses (called Y in the model). Will usually be extracted from the corresponding field in PLNfamily-class
+#' @param covariates design matrix (called X in the model). Will usually be extracted from the corresponding field in PLNfamily-class
+#' @param offsets offset matrix (called O in the model). Will usually be extracted from the corresponding field in PLNfamily-class
 #' @param weights an optional vector of observation weights to be used in the fitting process.
-#' @param penalty a positive real number controlling the level of sparsity of the underlying network.
-#' @param control a list for controlling the optimization of the PLN model used at initialization. See [PLNnetwork()] for details.
 #' @param formula model formula used for fitting, extracted from the formula in the upper-level call
-#' @param xlevels named listed of factor levels included in the models, extracted from the formula in [PLNnetwork()] call
+#' @param control a list for controlling the optimization.
 #' @param nullModel null model used for approximate R2 computations. Defaults to a GLM model with same design matrix but not latent variable.
+#' @param B matrix of regression matrix
+#' @param Sigma variance-covariance matrix of the latent variables
+#' @param Omega precision matrix of the latent variables. Inverse of Sigma.
 #'
-#'
+## Parameters specific to PLNnetwork-fit methods
+#' @param penalty a positive real number controlling the level of sparsity of the underlying network.
+#' @param penalty_weights either a single or a list of p x p matrix of weights (default filled with 1) to adapt the amount of shrinkage to each pairs of node. Must be symmetric with positive values.
 #'
 #' @include PLNnetworkfit-class.R
 #' @examples
@@ -31,7 +33,7 @@
 #' @seealso The function [PLNnetwork()], the class [`PLNnetworkfamily`]
 PLNnetworkfit <- R6Class(
   classname = "PLNnetworkfit",
-  inherit = PLNfit,
+  inherit = PLNfit_fixedcov,
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ## PUBLIC MEMBERS ----
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -39,95 +41,70 @@ PLNnetworkfit <- R6Class(
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Creation functions ----------------
     #' @description Initialize a [`PLNnetworkfit`] object
-    initialize = function(penalty, responses, covariates, offsets, weights, formula, xlevels, control) {
-      super$initialize(responses, covariates, offsets, weights, formula, xlevels, control)
+    initialize = function(penalty, penalty_weights, responses, covariates, offsets, weights, formula, control) {
+      stopifnot(isSymmetric(penalty_weights), all(penalty_weights > 0))
+      super$initialize(responses, covariates, offsets, weights, formula, control)
       private$lambda <- penalty
+      private$rho    <- penalty_weights
+      if (!control$penalize_diagonal) diag(private$rho) <- 0
     },
     #' @description Update fields of a [`PLNnetworkfit`] object
-    #' @param Theta matrix of regression matrix
+    #' @param B matrix of regression matrix
     #' @param Sigma variance-covariance matrix of the latent variables
     #' @param Omega precision matrix of the latent variables. Inverse of Sigma.
     #' @param M     matrix of mean vectors for the variational approximation
-    #' @param S2    matrix of variance vectors for the variational approximation
+    #' @param S     matrix of variance vectors for the variational approximation
     #' @param Z     matrix of latent vectors (includes covariates and offset effects)
     #' @param A     matrix of fitted values
     #' @param Ji    vector of variational lower bounds of the log-likelihoods (one value per sample)
     #' @param R2    approximate R^2 goodness-of-fit criterion
     #' @param monitoring a list with optimization monitoring quantities
-    update = function(penalty=NA, Theta=NA, Sigma=NA, Omega=NA, M=NA, S2=NA, Z=NA, A=NA, Ji=NA, R2=NA, monitoring=NA) {
-      super$update(Theta = Theta, Sigma = Sigma, M, S2 = S2, Z = Z, A = A, Ji = Ji, R2 = R2, monitoring = monitoring)
+    update = function(penalty=NA, B=NA, Sigma=NA, Omega=NA, M=NA, S=NA, Z=NA, A=NA, Ji=NA, R2=NA, monitoring=NA) {
+      super$update(B = B, Sigma = Sigma, Omega = Omega, M, S = S, Z = Z, A = A, Ji = Ji, R2 = R2, monitoring = monitoring)
       if (!anyNA(penalty)) private$lambda <- penalty
-      if (!anyNA(Omega))   private$Omega  <- Omega
     },
 
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ## Optimization ----------------------
     #' @description Call to the C++ optimizer and update of the relevant fields
-    optimize = function(responses, covariates, offsets, weights, control) {
-
-      ## shall we penalize the diagonal? in glassoFast
-      rho <- self$penalty * control$penalty_weights
-      if (!control$penalize_diagonal) diag(rho) <- 0
-
+    #' @param config a list for controlling the optimization
+    optimize = function(responses, covariates, offsets, weights, config) {
       cond <- FALSE; iter <- 0
-      objective   <- numeric(control$maxit_out)
-      convergence <- numeric(control$maxit_out)
+      objective   <- numeric(config$maxit_out)
+      convergence <- numeric(config$maxit_out)
       ## start from the standard PLN at initialization
-      par0  <- list(Theta = private$Theta, M = private$M, S = sqrt(private$S2))
-      Sigma <- private$Sigma
       objective.old <- -self$loglik
+      args <- list(data   = list(Y = responses, X = covariates, O = offsets, w = weights),
+                   params = list(B = private$B, M = private$M, S = private$S),
+                   config = config)
       while (!cond) {
         iter <- iter + 1
-        if (control$trace > 1) cat("", iter)
-
-        ## CALL TO GLASSO TO UPDATE Omega/Sigma
-        glasso_out <- glassoFast::glassoFast(Sigma, rho = rho)
+        if (config$trace > 1) cat("", iter)
+        ## CALL TO GLASSO TO UPDATE Omega
+        glasso_out <- glassoFast::glassoFast(private$Sigma, rho = self$penalty * self$penalty_weights)
         if (anyNA(glasso_out$wi)) break
-        Omega  <- glasso_out$wi ; if (!isSymmetric(Omega)) Omega <- Matrix::symmpart(Omega)
+        private$Omega <- args$params$Omega <- Matrix::symmpart(glasso_out$wi)
 
-        ## CALL TO NLOPT OPTIMIZATION WITH BOX CONSTRAINT
-        optim_out <- cpp_optimize_sparse(par0, responses, covariates, offsets, weights, Omega, control)
+        ## CALL TO NLOPT OPTIMIZATION TO UPDATE OTHER PARMAETERS
+        optim_out <- do.call(private$optimizer$main, args)
+        do.call(self$update, optim_out)
+
         ## Check convergence
-        objective[iter]   <- -sum(weights * optim_out$loglik) + self$penalty * sum(abs(Omega))
+        objective[iter]   <- -self$loglik + self$penalty * sum(abs(private$Omega))
         convergence[iter] <- abs(objective[iter] - objective.old)/abs(objective[iter])
-
-        if ((convergence[iter] < control$ftol_out) | (iter >= control$maxit_out)) cond <- TRUE
+        if ((convergence[iter] < config$ftol_out) | (iter >= config$maxit_out)) cond <- TRUE
 
         ## Prepare next iterate
-        Sigma <- optim_out$Sigma
-        par0  <- list(Theta = optim_out$Theta, M = optim_out$M, S = optim_out$S)
+        args$params <- list(B = private$B, M = private$M, S = private$S)
         objective.old <- objective[iter]
       }
 
       ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ## OUTPUT
-      Ji <- optim_out$loglik
-      attr(Ji, "weights") <- weights
-      self$update(
-        Theta = optim_out$Theta,
-        Omega = Omega,
-        Sigma = optim_out$Sigma,
-        M  = optim_out$M,
-        S2 = (optim_out$S)**2,
-        Z  = optim_out$Z,
-        A  = optim_out$A,
-        Ji = Ji,
-        monitoring = list(objective        = objective[1:iter],
-                          convergence      = convergence[1:iter],
-                          outer_iterations = iter,
-                          inner_iterations = optim_out$iterations,
-                          inner_status     = optim_out$status,
-                          inner_message    = statusToMessage(optim_out$status)))
-
-    },
-
-    ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ## Post treatment --------------------
-    #' @description Compute PCA scores in the latent space and update corresponding fields.
-    postTreatment = function(responses, covariates, offsets, weights, nullModel) {
-      super$postTreatment(responses, covariates, offsets, weights, nullModel = nullModel)
-      dimnames(private$Omega) <- dimnames(private$Sigma)
-      colnames(private$S2) <- 1:self$p
+      private$Sigma <- Matrix::symmpart(glasso_out$w)
+      private$monitoring$objective        <- objective[1:iter]
+      private$monitoring$convergence      <- convergence[1:iter]
+      private$monitoring$outer_iterations <- iter
     },
 
     ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -232,28 +209,26 @@ PLNnetworkfit <- R6Class(
   ## PRIVATE MEMBERS ----
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   private = list(
-    Omega  = NA, # the p x p precision matrix
-    lambda = NA  # the sparsity tuning parameter
+    lambda = NA, # the sparsity tuning parameter
+    rho    = NA  # the p x p penalty weight
   ),
 
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ## ACTIVE BINDINGS ----
   ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   active = list(
-    #' @field penalty the level of sparsity in the current model
-    penalty    = function() {private$lambda},
+    #' @field vcov_model character: the model used for the residual covariance
+    vcov_model = function() {"sparse"},
+    #' @field penalty the global level of sparsity in the current model
+    penalty         = function() {private$lambda},
+    #' @field penalty_weights a matrix of weights controlling the amount of penalty element-wise.
+    penalty_weights = function() {private$rho},
     #' @field n_edges number of edges if the network (non null coefficient of the sparse precision matrix)
-    n_edges    = function() {sum(private$Omega[upper.tri(private$Omega, diag = FALSE)] != 0)},
+    n_edges         = function() {sum(private$Omega[upper.tri(private$Omega, diag = FALSE)] != 0)},
     #' @field nb_param number of parameters in the current PLN model
-    nb_param   = function() {self$p * self$d + self$n_edges},
+    nb_param        = function() {self$p * self$d + self$n_edges},
     #' @field pen_loglik variational lower bound of the l1-penalized loglikelihood
-    pen_loglik = function() {self$loglik - private$lambda * sum(abs(private$Omega))},
-    #' @field model_par a list with the matrices associated with the estimated parameters of the pPCA model: Theta (covariates), Sigma (latent covariance) and Theta (latent precision matrix). Note Omega and Sigma are inverse of each other.
-    model_par  = function() {
-      par <- super$model_par
-      par$Omega <- private$Omega
-      par
-    },
+    pen_loglik      = function() {self$loglik - private$lambda * sum(abs(private$Omega))},
     #' @field EBIC variational lower bound of the EBIC
     EBIC      = function() {
       self$BIC - .5 * ifelse(self$n_edges > 0, self$n_edges * log(.5 * self$p*(self$p - 1)/self$n_edges), 0)
