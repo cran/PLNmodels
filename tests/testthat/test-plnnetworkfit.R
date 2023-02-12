@@ -31,17 +31,17 @@ test_that("PLNnetwork fit: check classes, getters and field access", {
   expect_gt(myPLNfit$density, 0)
   expect_true(myPLNfit$penalty > 0)
   expect_true(is.data.frame(myPLNfit$criteria))
-  ## FIXME: what about the variance parameters ? (+p??)
-  expect_equal(myPLNfit$nb_param, p + myPLNfit$n_edges)
+  expect_equal(myPLNfit$nb_param, 2 *p + myPLNfit$n_edges)
 
   ## S3 methods
   expect_equal(coefficients(myPLNfit), myPLNfit$model_par$B)
   expect_equal(dim(fitted(myPLNfit)), dim(Y))
   expect_equal(sigma(myPLNfit), myPLNfit$model_par$Sigma)
-  expect_equal(vcov(myPLNfit, "main"), myPLNfit$vcov_coef)
+  expect_error(vcov(myPLNfit, "main"))
+  expect_null(myPLNfit$vcov_coef)
   expect_equal(vcov(myPLNfit, "covariance"), myPLNfit$model_par$Sigma)
   expect_equal(vcov(myPLNfit, "covariance"), sigma(myPLNfit))
-  expect_error(standard_error(myPLNfit))
+  expect_warning(standard_error(myPLNfit))
   expect_true(igraph::is.igraph(myPLNfit$plot_network(output = "igraph", plot = FALSE)))
   expect_true(inherits(myPLNfit$plot_network(output = "corrplot", plot = FALSE), "Matrix"))
 

@@ -24,6 +24,16 @@ p <- ncol(trichoptera$Abundance)
 k <- 3
 d <- 0
 
+### ======================== GENERAL
+test_that("PLN works for abitrary cluster sequences when smoothing is requested", {
+  expect_is(PLNmixture(
+    Abundance ~ 1 + offset(log(Offset)), clusters = c(2, 4),
+    data = trichoptera,
+    control = PLNmixture_param(smoothing = "both")
+  ), "PLNmixturefamily")
+})
+
+
 ### ============================================================================
 ###
 ### SPHERICAL, NO COVARIATE
@@ -215,8 +225,6 @@ test_that("Diagonal model of the covariance is working", {
    expect_equal(dim(predict(model, newdata = trichoptera[test, ], type = "posterior")), c(sum(test), k))
 
 })
-
-
 
 ### ============================================================================
 ###
