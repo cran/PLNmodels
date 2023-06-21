@@ -1,3 +1,12 @@
+
+# PLNmodels 1.0.2 (2023-06-21)
+
+* changed initial value in optim for variational variance (1 -> 0.1),
+    which caused failure in some cases
+* fix bug when using inception in PLNnetwork()
+* starting handling of missing data
+* slightly faster (factorized) initialization for PCA
+
 # PLNmodels 1.0.1 (2023-02-12)
 
 * fix in the use of future_lapply which used to make post-Treatments in PLNPCA last for ever with multicore in v1.0.0...
