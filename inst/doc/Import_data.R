@@ -42,6 +42,9 @@ compute_offset(trichoptera$Abundance, "RLE", type = "poscounts")
 ## ----wrench-------------------------------------------------------------------
 compute_offset(trichoptera$Abundance, "Wrench")
 
+## ----wrench_counts------------------------------------------------------------
+compute_offset(trichoptera$Abundance, "Wrench", scale = "count")
+
 ## ----prepare_data_other_offset------------------------------------------------
 str(prepare_data(trichoptera$Abundance, 
              trichoptera$Covariate, 

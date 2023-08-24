@@ -136,7 +136,7 @@ PLNfit <- R6Class(
         ## display progress
         if (config$trace >  1 && (iterate %% 50 == 0))
           cat('\niteration: ', iterate, 'objective', objective[iterate + 1],
-              'delta_f'  , round(delta_f, 6), 'delta_x', ro<und(delta_x, 6))
+              'delta_f'  , round(delta_f, 6), 'delta_x', round(delta_x, 6))
 
         ## Check for convergence
         if (delta_f < config$ftol_rel) status <- 3
@@ -356,9 +356,15 @@ PLNfit <- R6Class(
                       Omega = self$model_par$Omega,
                       control = PLN_param(backend = "nlopt")) {
       n <- nrow(responses); p <- ncol(responses)
-      args <- list(data   = list(Y = responses, X = covariates, O = offsets, w = weights),
+      ## initialize variational parameters with current value if dimension is the same
+      if ((p != self$p) || (n != self$n)) {
+        params0 <- list(M = matrix(0, n, p), S = matrix(.1, n, p))
+      } else {
+        params0 <- list(M = self$var_par$M, S = self$var_par$S)
+      }
+      args <- list(data = list(Y = responses, X = covariates, O = offsets, w = weights),
                    ## Initialize the variational parameters with the new dimension of the data
-                   params = list(M = matrix(0, n, p), S = matrix(1, n, p)),
+                   params = params0,
                    B = as.matrix(B),
                    Omega = as.matrix(Omega),
                    config = control$config_optim)
@@ -696,7 +702,7 @@ PLNfit_spherical <- R6Class(
     initialize = function(responses, covariates, offsets, weights, formula, control) {
       super$initialize(responses, covariates, offsets, weights, formula, control)
       private$optimizer$main   <- ifelse(control$backend == "nlopt", nlopt_optimize_spherical, private$torch_optimize)
-      private$optimizer$vestep <- nlopt_optimize_vestep_diagonal
+      private$optimizer$vestep <- nlopt_optimize_vestep_spherical
     }
   ),
   private = list(
