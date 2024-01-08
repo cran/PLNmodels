@@ -51,8 +51,7 @@ PLNPCA <- function(formula, data, subset, weights, ranks = 1:5, control = PLNPCA
 
   ## Post-treatments: pseudo-R2, rearrange criteria and prepare PCA visualization
   if (control$trace > 0) cat("\n Post-treatments")
-  config_post <- config_post_default_PLNPCA; config_post$trace <- control$trace
-  myPCA$postTreatment(config_post)
+  myPCA$postTreatment(control$config_post, control$config_optim)
 
   if (control$trace > 0) cat("\n DONE!\n")
   myPCA
@@ -65,35 +64,29 @@ PLNPCA <- function(formula, data, subset, weights, ranks = 1:5, control = PLNPCA
 #' @param backend optimization back used, either "nlopt" or "torch". Default is "nlopt"
 #' @param trace a integer for verbosity.
 #' @param config_optim a list for controlling the optimizer (either "nlopt" or "torch" backend). See details
+#' @param config_post a list for controlling the post-treatments (optional bootstrap, jackknife, R2, etc.). See details
 #' @param inception Set up the parameters initialization: by default, the model is initialized with a multivariate linear model applied on
 #'    log-transformed data, and with the same formula as the one provided by the user. However, the user can provide a PLNfit (typically obtained from a previous fit),
 #'    which sometimes speeds up the inference.
 #'
 #' @return list of parameters configuring the fit.
 #'
-#' @details The list of parameters `config_optim` controls the optimizers. When "nlopt" is chosen the following entries are relevant
-#' * "algorithm" the optimization method used by NLOPT among LD type, e.g. "CCSAQ", "MMA", "LBFGS". See NLOPT documentation for further details. Default is "CCSAQ".
-#' * "maxeval" stop when the number of iteration exceeds maxeval. Default is 10000
-#' * "ftol_rel" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 1e-8
-#' * "xtol_rel" stop when an optimization step changes every parameters by less than xtol multiplied by the absolute value of the parameter. Default is 1e-6
-#' * "ftol_abs" stop when an optimization step changes the objective function by less than ftol_abs. Default is 0.0 (disabled)
-#' * "xtol_abs" stop when an optimization step changes every parameters by less than xtol_abs. Default is 0.0 (disabled)
-#' * "maxtime" stop when the optimization time (in seconds) exceeds maxtime. Default is -1 (disabled)
-#'
-#' When "torch" backend is used, with the following entries are relevant:
-#' * "maxeval" stop when the number of iteration exceeds maxeval. Default is 10000
-#' * "ftol_rel" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 1e-8
-#' * "xtol_rel" stop when an optimization step changes every parameters by less than xtol multiplied by the absolute value of the parameter. Default is 1e-6
-#'
+#' @inherit PLN_param details
 #' @export
 PLNPCA_param <- function(
     backend       = "nlopt",
     trace         = 1      ,
     config_optim  = list() ,
+    config_post   = list() ,
     inception     = NULL     # pretrained PLNfit used as initialization
 ) {
 
   if (!is.null(inception)) stopifnot(isPLNfit(inception))
+
+  ## post-treatment config
+  config_pst <- config_post_default_PLNPCA
+  config_pst[names(config_post)] <- config_post
+  config_pst$trace <- trace
 
   ## optimization config
   backend <- match.arg(backend)
@@ -113,5 +106,6 @@ PLNPCA_param <- function(
     backend       = backend   ,
     trace         = trace     ,
     config_optim  = config_opt,
+    config_post   = config_pst,
     inception     = inception   ), class = "PLNmodels_param")
 }

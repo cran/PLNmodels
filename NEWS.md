@@ -1,8 +1,21 @@
+# PLNmodels 1.1.0 (2024-01-08)
+
+* Update documentation of PLN*_param() functions to include torch optimization parameters
+* Add (somehow) explicit error message when torch convergence fails
+* Change initialization in `variance_jackknife()` and `variance_bootstrap()` to prevent estimation recycling, results from those functions are now comparable to doing jackknife / bootstrap "by hand". 
+* Merge PR #110 from Cole Trapnell to add:
+  - bootstrap estimation of the variance of model parameter
+  - improved interface for model initialization / optimisation parameters, which
+    are now passed on to jackknife / bootstrap post-treatments
+  - better support of GPU when using torch backend
+* Change behavior of `predict()` function for PLNfit model to (i) return fitted values if newdata is missing or (ii) perform one VE step to improve fit if responses are provided (fix issue #114)
+
 # PLNmodels 1.0.4 (2023-08-24)
 
 * changed initial value in optim for variational variance (1 -> 0.1) in VE-step of PLN and PLNPCA
 * fix sign in objective of VE_step for PLN with full covariance Issue #100
 * add a `scale` argument compute_offset() to force the offsets (RLE, CSS, GMPR, Wrench) to be on the same scale as the counts, like TSS.
+* add a new "TMM" for compute_offset()
 * fix nb_param for PLNLDA, which caused wrong BIC/ICL and erratic model selection
 * fix minor issues #102, #103 plus some others
 * fix package file documentation as suggested in <https://github.com/r-lib/roxygen2/issues/1491>

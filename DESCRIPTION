@@ -1,14 +1,18 @@
 Package: PLNmodels
 Title: Poisson Lognormal Models
-Version: 1.0.4
+Version: 1.1.0
 Authors@R: c(
   person("Julien", "Chiquet", role = c("aut", "cre"), email = "julien.chiquet@inrae.fr",
       comment = c(ORCID = "0000-0002-3629-3429")),
   person("Mahendra", "Mariadassou", role = "aut", email = "mahendra.mariadassou@inrae.fr", 
       comment = c(ORCID = "0000-0003-2986-354X")),
-  person("Stéphane", "Robin", role ="ctb", email = "stephane.robin@inrae.fr"),
+  person("Stéphane", "Robin", role ="aut", email = "stephane.robin@inrae.fr"),
+  person("François", "Gindraud", role = "aut", email = "francois.gindraud@gmail.com"),
+  person("Julie", "Aubert", role = "ctb", email = "julie.aubert@inrae.fr"),
+  person("Bastien", "Batardière", role = "ctb", email = "bastien.batardiere@inrae.fr"),
   person("Giovanni", "Poggiato", role = "ctb", email = "giov.poggiato@gmail.com"),
-  person("François", "Gindraud", role = "aut", email = "francois.gindraud@gmail.com")
+  person("Cole", "Trapnell", role = "ctb", email = "coletrap@uw.edu"),
+  person("Maddy", "Duran", role = "ctb", email = "duran@uw.edu")
   )
 Description: The Poisson-lognormal model and variants (Chiquet, Mariadassou and Robin, 
     2021 <doi:10.3389/fevo.2021.588292>) can be used for 
@@ -45,12 +49,16 @@ Collate: 'PLNfit-class.R' 'PLN.R' 'PLNLDA.R' 'PLNLDAfit-S3methods.R'
         'utils.R' 'zzz.R'
 Language: en-US
 NeedsCompilation: yes
-Packaged: 2023-08-24 14:33:29 UTC; jchiquet
+Packaged: 2024-01-08 12:32:56 UTC; jchiquet
 Author: Julien Chiquet [aut, cre] (<https://orcid.org/0000-0002-3629-3429>),
   Mahendra Mariadassou [aut] (<https://orcid.org/0000-0003-2986-354X>),
-  Stéphane Robin [ctb],
+  Stéphane Robin [aut],
+  François Gindraud [aut],
+  Julie Aubert [ctb],
+  Bastien Batardière [ctb],
   Giovanni Poggiato [ctb],
-  François Gindraud [aut]
+  Cole Trapnell [ctb],
+  Maddy Duran [ctb]
 Maintainer: Julien Chiquet <julien.chiquet@inrae.fr>
 Repository: CRAN
-Date/Publication: 2023-08-24 15:10:02 UTC
+Date/Publication: 2024-01-08 18:30:02 UTC

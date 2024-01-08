@@ -74,7 +74,7 @@ plot(myLDA_nocov, map = "individual", nb_axes = 2, plot = FALSE) +
   geom_point(data = predicted.scores, 
              aes(x = Axis.1, y = Axis.2, color = group, label = NULL))
 
-## ---- warning=FALSE-----------------------------------------------------------
+## ----warning=FALSE------------------------------------------------------------
 myLDA_cov <- PLNLDA(Abundance ~ Wind + 0 + offset(log(Offset)), 
                     grouping = Group, 
                     data = trichoptera)

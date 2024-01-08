@@ -5,18 +5,22 @@
 \title{Control of PLNnetwork fit}
 \usage{
 PLNnetwork_param(
-  backend = "nlopt",
+  backend = c("nlopt", "torch"),
+  inception_cov = c("full", "spherical", "diagonal"),
   trace = 1,
   n_penalties = 30,
   min_ratio = 0.1,
   penalize_diagonal = TRUE,
   penalty_weights = NULL,
+  config_post = list(),
   config_optim = list(),
   inception = NULL
 )
 }
 \arguments{
 \item{backend}{optimization back used, either "nlopt" or "torch". Default is "nlopt"}
+
+\item{inception_cov}{Covariance structure used for the inception model used to initialize the PLNfamily. Defaults to "full" and can be constrained to "diagonal" and "spherical".}
 
 \item{trace}{a integer for verbosity.}
 
@@ -27,6 +31,8 @@ PLNnetwork_param(
 \item{penalize_diagonal}{boolean: should the diagonal terms be penalized in the graphical-Lasso? Default is \code{TRUE}}
 
 \item{penalty_weights}{either a single or a list of p x p matrix of weights (default filled with 1) to adapt the amount of shrinkage to each pairs of node. Must be symmetric with positive values.}
+
+\item{config_post}{a list for controlling the post-treatment (optional bootstrap, jackknife, R2, etc).}
 
 \item{config_optim}{a list for controlling the optimizer (either "nlopt" or "torch" backend). See details}
 
@@ -41,25 +47,12 @@ list of parameters configuring the fit.
 Helper to define list of parameters to control the PLN fit. All arguments have defaults.
 }
 \details{
-The list of parameters \code{config_optim} controls the optimizers. When "nlopt" is chosen the following entries are relevant
+See \code{\link[=PLN_param]{PLN_param()}} for a full description of the generic optimization parameters. PLNnetwork_param() also has two additional parameters controlling the optimization due the inner-outer loop structure of the optimizer:
 \itemize{
-\item "algorithm" the optimization method used by NLOPT among LD type, e.g. "CCSAQ", "MMA", "LBFGS". See NLOPT documentation for further details. Default is "CCSAQ".
-\item "maxeval" stop when the number of iteration exceeds maxeval. Default is 10000
-\item "ftol_rel" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 1e-8
-\item "xtol_rel" stop when an optimization step changes every parameters by less than xtol multiplied by the absolute value of the parameter. Default is 1e-6
-\item "ftol_out" outer solver stops when an optimization step changes the objective function by less than xtol multiply by the absolute value of the parameter. Default is 1e-6
-\item "maxit_out" outer solver stops when the number of iteration exceeds out.maxit. Default is 50
-\item "ftol_abs" stop when an optimization step changes the objective function by less than ftol_abs. Default is 0.0 (disabled)
-\item "xtol_abs" stop when an optimization step changes every parameters by less than xtol_abs. Default is 0.0 (disabled)
-\item "maxtime" stop when the optimization time (in seconds) exceeds maxtime. Default is -1 (disabled)
+\item "ftol_out" outer solver stops when an optimization step changes the objective function by less than xtol multiplied by the absolute value of the parameter. Default is 1e-6
+\item "maxit_out" outer solver stops when the number of iteration exceeds maxit_out. Default is 50
 }
-
-When "torch" backend is used, with the following entries are relevant:
-\itemize{
-\item "maxeval" stop when the number of iteration exceeds maxeval. Default is 10000
-\item "ftol_out" outer solver stops when an optimization step changes the objective function by less than xtol multiply by the absolute value of the parameter. Default is 1e-6
-\item "maxit_out" outer solver stops when the number of iteration exceeds out.maxit. Default is 50
-\item "ftol_rel" stop when an optimization step changes the objective function by less than ftol multiplied by the absolute value of the parameter. Default is 1e-8
-\item "xtol_rel" stop when an optimization step changes every parameters by less than xtol multiplied by the absolute value of the parameter. Default is 1e-6
 }
+\seealso{
+\code{\link[=PLN_param]{PLN_param()}}
 }
