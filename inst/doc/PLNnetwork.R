@@ -46,8 +46,8 @@ model_pen <- getModel(network_models, network_models$penalties[20]) # give some 
 model_BIC <- getBestModel(network_models, "BIC")   # if no criteria is specified, the best BIC is used
 
 ## ----future, eval = FALSE-----------------------------------------------------
-#  library(future)
-#  plan(multisession, workers = 2)
+# library(future)
+# plan(multisession, workers = 2)
 
 ## ----stability----------------------------------------------------------------
 n <- nrow(trichoptera)
@@ -61,7 +61,7 @@ model_StARS <- getBestModel(network_models, "StARS")
 plot(network_models, "stability")
 
 ## ----future_off, eval = FALSE-------------------------------------------------
-#  future::plan("sequential")
+# future::plan("sequential")
 
 ## ----show/print---------------------------------------------------------------
 model_StARS

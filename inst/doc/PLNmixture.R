@@ -11,8 +11,8 @@ library(PLNmodels)
 library(factoextra)
 
 ## ----future, eval = FALSE-----------------------------------------------------
-#  library(future)
-#  plan(multisession, workers = 2)
+# library(future)
+# plan(multisession, workers = 2)
 
 ## ----data_load----------------------------------------------------------------
 data(trichoptera)
@@ -98,5 +98,5 @@ prcomp(predicted.position) %>%
   factoextra::fviz_pca_ind(col.ind = predicted.class)
 
 ## ----future_off, eval = FALSE-------------------------------------------------
-#  future::plan("sequential")
+# future::plan("sequential")
 

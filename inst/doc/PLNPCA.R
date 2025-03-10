@@ -13,8 +13,8 @@ library(corrplot)
 library(factoextra)
 
 ## ----future, eval = FALSE-----------------------------------------------------
-#  library(future)
-#  plan(multisession, workers = 2)
+# library(future)
+# plan(multisession, workers = 2)
 
 ## ----data_load----------------------------------------------------------------
 data(trichoptera)
@@ -126,5 +126,5 @@ data.frame(
     theme_bw() + annotation_logticks()
 
 ## ----future_off, eval = FALSE-------------------------------------------------
-#  future::plan("sequential")
+# future::plan("sequential")
 
